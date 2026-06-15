@@ -7,9 +7,5 @@ scrape_configs:
     static_configs:
       - targets: ['vast-gpu-server-2.tailb70036.ts.net:18000']
     metrics_path: '/metrics'
-  - job_name: 'homeserver-statsd'
-    static_configs:
-      - targets: ['100.76.153.26:9102']
-  - job_name: 'homeserver-node'
-    static_configs:
-      - targets: ['100.76.153.26:9100']
+  # 홈서버 메트릭은 Alloy remote_write(push)로 수신 (다른 tailnet이라 pull 불가).
+  # airflow 메트릭(EC2/홈서버)도 모두 Alloy push → 별도 scrape 타깃 없음.
