@@ -1,0 +1,377 @@
+{
+  "title": "Neo4j 모니터링",
+  "uid": "neo4j-monitoring",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "time": {"from": "now-24h", "to": "now"},
+  "timezone": "browser",
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+      "id": 1,
+      "title": "Sync & 그래프 현황",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "hadesarchitect-neo4j-datasource", "uid": "${neo4j_datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 1},
+      "id": 2,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "description": "마지막 neo4j_incremental.py 실행 시각과 처리 건수",
+      "title": "마지막 sync 시각/건수",
+      "targets": [
+        {
+          "datasource": {"type": "hadesarchitect-neo4j-datasource", "uid": "${neo4j_datasource}"},
+          "queryType": "table",
+          "queryText": "MATCH (s:SyncLog) RETURN s.synced_at AS synced_at, s.new_count AS new, s.removed_count AS removed, s.changed_count AS changed ORDER BY s.synced_at DESC LIMIT 1",
+          "refId": "A"
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "hadesarchitect-neo4j-datasource", "uid": "${neo4j_datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"lineWidth": 1, "fillOpacity": 10}
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 18, "x": 6, "y": 1},
+      "id": 3,
+      "options": {
+        "tooltip": {"mode": "multi"},
+        "legend": {"displayMode": "list", "placement": "bottom"}
+      },
+      "description": "batch별 new/removed/changed 건수 추이. 미매핑 성분 사전 보강 작업의 효과(changed_count 변화)도 여기서 확인 가능",
+      "title": "sync 이력 추이",
+      "targets": [
+        {
+          "datasource": {"type": "hadesarchitect-neo4j-datasource", "uid": "${neo4j_datasource}"},
+          "queryType": "timeseries",
+          "queryText": "MATCH (s:SyncLog) RETURN s.synced_at AS time, s.new_count AS new, s.removed_count AS removed, s.changed_count AS changed ORDER BY s.synced_at",
+          "refId": "A"
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "hadesarchitect-neo4j-datasource", "uid": "${neo4j_datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 8, "x": 0, "y": 5},
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "title": "총 Product 수",
+      "targets": [
+        {
+          "datasource": {"type": "hadesarchitect-neo4j-datasource", "uid": "${neo4j_datasource}"},
+          "queryType": "table",
+          "queryText": "MATCH (p:Product) RETURN count(p) AS value",
+          "refId": "A"
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "hadesarchitect-neo4j-datasource", "uid": "${neo4j_datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 8, "x": 8, "y": 5},
+      "id": 5,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "title": "총 Ingredient 수",
+      "targets": [
+        {
+          "datasource": {"type": "hadesarchitect-neo4j-datasource", "uid": "${neo4j_datasource}"},
+          "queryType": "table",
+          "queryText": "MATCH (i:Ingredient) RETURN count(i) AS value",
+          "refId": "A"
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "hadesarchitect-neo4j-datasource", "uid": "${neo4j_datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 8, "x": 16, "y": 5},
+      "id": 6,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "description": "그래프 밀도 지표. 미매핑 성분 보강 작업 전/후 비교용",
+      "title": "총 CONTAINS 관계 수",
+      "targets": [
+        {
+          "datasource": {"type": "hadesarchitect-neo4j-datasource", "uid": "${neo4j_datasource}"},
+          "queryType": "table",
+          "queryText": "MATCH ()-[r:CONTAINS]->() RETURN count(r) AS value",
+          "refId": "A"
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "hadesarchitect-neo4j-datasource", "uid": "${neo4j_datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"lineWidth": 1, "fillOpacity": 30}
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 9},
+      "id": 7,
+      "options": {
+        "tooltip": {"mode": "single"},
+        "legend": {"displayMode": "list", "placement": "bottom"},
+        "orientation": "horizontal",
+        "xTickLabelRotation": 0
+      },
+      "title": "브랜드별 제품 수 Top 15",
+      "targets": [
+        {
+          "datasource": {"type": "hadesarchitect-neo4j-datasource", "uid": "${neo4j_datasource}"},
+          "queryType": "table",
+          "queryText": "MATCH (p:Product) RETURN p.brand AS brand, count(p) AS cnt ORDER BY cnt DESC LIMIT 15",
+          "refId": "A"
+        }
+      ],
+      "type": "barchart"
+    },
+    {
+      "datasource": {"type": "hadesarchitect-neo4j-datasource", "uid": "${neo4j_datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"lineWidth": 1, "fillOpacity": 30}
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 9},
+      "id": 8,
+      "options": {
+        "tooltip": {"mode": "single"},
+        "legend": {"displayMode": "list", "placement": "bottom"},
+        "orientation": "horizontal",
+        "xTickLabelRotation": 0
+      },
+      "title": "성분 사용 Top 20",
+      "targets": [
+        {
+          "datasource": {"type": "hadesarchitect-neo4j-datasource", "uid": "${neo4j_datasource}"},
+          "queryType": "table",
+          "queryText": "MATCH (:Product)-[:CONTAINS]->(i:Ingredient) RETURN i.inci_name AS ingredient, count(*) AS cnt ORDER BY cnt DESC LIMIT 20",
+          "refId": "A"
+        }
+      ],
+      "type": "barchart"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 15},
+      "id": 9,
+      "title": "Backend 쿼리 성능",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "loki", "uid": "${loki_datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"lineWidth": 1, "fillOpacity": 10},
+          "unit": "ms",
+          "links": [
+            {
+              "title": "Loki — 함수별 로그 보기",
+              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"backend\\\",func=\\\"${__field.labels.func}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
+              "targetBlank": true
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 14, "x": 0, "y": 16},
+      "id": 10,
+      "options": {
+        "tooltip": {"mode": "multi"},
+        "legend": {"displayMode": "list", "placement": "bottom"}
+      },
+      "description": "func(query_products_by_ingredients / query_ingredients_by_effects / query_path_by_effects)별 응답시간 p95",
+      "title": "쿼리 응답시간 p95",
+      "targets": [
+        {
+          "datasource": {"type": "loki", "uid": "${loki_datasource}"},
+          "expr": "quantile_over_time(0.95, {job=\"backend\"} |= \"event=graph_query\" | regexp \"duration_ms=(?P<duration_ms>[0-9.]+)\" | unwrap duration_ms [5m]) by (func)",
+          "legendFormat": "{{func}}",
+          "refId": "A"
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "loki", "uid": "${loki_datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"lineWidth": 1, "fillOpacity": 10}
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 10, "x": 14, "y": 16},
+      "id": 11,
+      "options": {
+        "tooltip": {"mode": "multi"},
+        "legend": {"displayMode": "list", "placement": "bottom"}
+      },
+      "description": "A/B/C 포맷 중 어떤 조회 함수가 많이 호출되는지",
+      "title": "함수별 호출량",
+      "targets": [
+        {
+          "datasource": {"type": "loki", "uid": "${loki_datasource}"},
+          "expr": "sum(rate({job=\"backend\"} |= \"event=graph_query\" [5m])) by (func)",
+          "legendFormat": "{{func}}",
+          "refId": "A"
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "loki", "uid": "${loki_datasource}"},
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 24},
+      "id": 12,
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending"
+      },
+      "description": "neo4j_client.py의 logger.warning(\"... query failed\") 라인",
+      "title": "Neo4j 조회 실패 로그",
+      "targets": [
+        {
+          "datasource": {"type": "loki", "uid": "${loki_datasource}"},
+          "expr": "{job=\"backend\"} |= \"query failed\"",
+          "refId": "A"
+        }
+      ],
+      "type": "logs"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 32},
+      "id": 13,
+      "title": "Neo4j 서버 로그",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "loki", "uid": "${loki_datasource}"},
+      "gridPos": {"h": 8, "w": 14, "x": 0, "y": 33},
+      "id": 14,
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending"
+      },
+      "description": "graphdb 서버 Promtail이 추출하는 level 라벨 사용",
+      "title": "ERROR/WARN 로그",
+      "targets": [
+        {
+          "datasource": {"type": "loki", "uid": "${loki_datasource}"},
+          "expr": "{job=\"neo4j\", level=~\"ERROR|WARN\"}",
+          "refId": "A"
+        }
+      ],
+      "type": "logs"
+    },
+    {
+      "datasource": {"type": "loki", "uid": "${loki_datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"lineWidth": 1, "fillOpacity": 10}
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 10, "x": 14, "y": 33},
+      "id": 15,
+      "options": {
+        "tooltip": {"mode": "multi"},
+        "legend": {"displayMode": "list", "placement": "bottom"}
+      },
+      "description": "평소 대비 ERROR 급증 감지용",
+      "title": "레벨별 로그량",
+      "targets": [
+        {
+          "datasource": {"type": "loki", "uid": "${loki_datasource}"},
+          "expr": "sum(rate({job=\"neo4j\"} [5m])) by (level)",
+          "legendFormat": "{{level}}",
+          "refId": "A"
+        }
+      ],
+      "type": "timeseries"
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "hide": 0,
+        "label": "Neo4j",
+        "name": "neo4j_datasource",
+        "query": "hadesarchitect-neo4j-datasource",
+        "refresh": 1,
+        "type": "datasource"
+      },
+      {
+        "current": {},
+        "hide": 0,
+        "label": "Loki",
+        "name": "loki_datasource",
+        "query": "loki",
+        "refresh": 1,
+        "type": "datasource"
+      }
+    ]
+  }
+}
