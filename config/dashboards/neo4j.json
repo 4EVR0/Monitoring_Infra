@@ -36,8 +36,8 @@
       "targets": [
         {
           "datasource": {"type": "kniepdennis-neo4j-datasource", "uid": "${neo4j_datasource}"},
-          "queryType": "table",
-          "queryText": "MATCH (s:SyncLog) RETURN s.synced_at AS synced_at, s.new_count AS new, s.removed_count AS removed, s.changed_count AS changed ORDER BY s.synced_at DESC LIMIT 1",
+          "Format": "table",
+          "cypherQuery": "MATCH (s:SyncLog) RETURN s.synced_at AS synced_at, s.new_count AS new, s.removed_count AS removed, s.changed_count AS changed ORDER BY s.synced_at DESC LIMIT 1",
           "refId": "A"
         }
       ],
@@ -63,8 +63,8 @@
       "targets": [
         {
           "datasource": {"type": "kniepdennis-neo4j-datasource", "uid": "${neo4j_datasource}"},
-          "queryType": "timeseries",
-          "queryText": "MATCH (s:SyncLog) RETURN s.synced_at AS time, s.new_count AS new, s.removed_count AS removed, s.changed_count AS changed ORDER BY s.synced_at",
+          "Format": "table",
+          "cypherQuery": "MATCH (s:SyncLog) RETURN s.synced_at AS time, s.new_count AS new, s.removed_count AS removed, s.changed_count AS changed ORDER BY s.synced_at",
           "refId": "A"
         }
       ],
@@ -90,8 +90,8 @@
       "targets": [
         {
           "datasource": {"type": "kniepdennis-neo4j-datasource", "uid": "${neo4j_datasource}"},
-          "queryType": "table",
-          "queryText": "MATCH (p:Product) RETURN count(p) AS value",
+          "Format": "table",
+          "cypherQuery": "MATCH (p:Product) RETURN count(p) AS value",
           "refId": "A"
         }
       ],
@@ -117,8 +117,8 @@
       "targets": [
         {
           "datasource": {"type": "kniepdennis-neo4j-datasource", "uid": "${neo4j_datasource}"},
-          "queryType": "table",
-          "queryText": "MATCH (i:Ingredient) RETURN count(i) AS value",
+          "Format": "table",
+          "cypherQuery": "MATCH (i:Ingredient) RETURN count(i) AS value",
           "refId": "A"
         }
       ],
@@ -145,8 +145,8 @@
       "targets": [
         {
           "datasource": {"type": "kniepdennis-neo4j-datasource", "uid": "${neo4j_datasource}"},
-          "queryType": "table",
-          "queryText": "MATCH ()-[r:CONTAINS]->() RETURN count(r) AS value",
+          "Format": "table",
+          "cypherQuery": "MATCH ()-[r:CONTAINS]->() RETURN count(r) AS value",
           "refId": "A"
         }
       ],
@@ -173,8 +173,8 @@
       "targets": [
         {
           "datasource": {"type": "kniepdennis-neo4j-datasource", "uid": "${neo4j_datasource}"},
-          "queryType": "table",
-          "queryText": "MATCH (p:Product) RETURN p.brand AS brand, count(p) AS cnt ORDER BY cnt DESC LIMIT 15",
+          "Format": "table",
+          "cypherQuery": "MATCH (p:Product) RETURN p.brand AS brand, count(p) AS cnt ORDER BY cnt DESC LIMIT 15",
           "refId": "A"
         }
       ],
@@ -201,8 +201,8 @@
       "targets": [
         {
           "datasource": {"type": "kniepdennis-neo4j-datasource", "uid": "${neo4j_datasource}"},
-          "queryType": "table",
-          "queryText": "MATCH (:Product)-[:CONTAINS]->(i:Ingredient) RETURN i.inci_name AS ingredient, count(*) AS cnt ORDER BY cnt DESC LIMIT 20",
+          "Format": "table",
+          "cypherQuery": "MATCH (:Product)-[:CONTAINS]->(i:Ingredient) RETURN i.inci_name AS ingredient, count(*) AS cnt ORDER BY cnt DESC LIMIT 20",
           "refId": "A"
         }
       ],
