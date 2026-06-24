@@ -1,0 +1,61 @@
+// 4EVR0 추천 앱(WAS) 로그 → Loki
+//
+// 개발자 Mac 로컬에서 실행. 앱이 stdout 으로 찍는 JSON 로그를 파일로 받아(tee) tail 하고,
+// monitoring-server-1 의 Loki 로 push 한다. (기존 Airflow 로그 수집과 동일한 Alloy 패턴)
+//
+// 라벨 관례는 기존 수집과 통일: job / service_name / host / filename(자동).
+// trace_id 는 고카디널리티이므로 라벨이 아니라 structured metadata 로 넣는다.
+//
+// 실행:
+//   export WAS_LOG_PATH=/Users/hyeokjun/4EVR0/4EVR0-Server/logs/app.log
+//   alloy run was-app.alloy
+// (앱은 별도로:  uvicorn app.main:app --host 0.0.0.0 --port 8000 2>&1 | tee -a logs/app.log)
+
+local.file_match "was_app" {
+  path_targets = [{
+    __path__     = sys.env("WAS_LOG_PATH"),
+    job          = "was-app",
+    service_name = "4evr0-recommend",
+    host         = "macbook-pro-3",
+  }]
+}
+
+loki.source.file "was_app" {
+  targets    = local.file_match.was_app.targets
+  forward_to = [loki.process.was_app.receiver]
+}
+
+loki.process "was_app" {
+  // JSON 한 줄에서 필드 추출
+  stage.json {
+    expressions = {
+      level    = "level",
+      trace_id = "trace_id",
+      logger   = "logger",
+    }
+  }
+
+  // level 만 라벨로 승격(저카디널리티). 나머지는 라벨로 만들지 않는다.
+  stage.labels {
+    values = {
+      level = "",
+    }
+  }
+
+  // trace_id/logger 는 structured metadata 로 — 라벨 폭발 없이 조회·필터 가능
+  stage.structured_metadata {
+    values = {
+      trace_id = "",
+      logger   = "",
+    }
+  }
+
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    // Loki auth_enabled=false (Tailscale 내부망). Tailnet 호스트명으로 push.
+    url = "http://monitoring-server-1.tailb70036.ts.net:3100/loki/api/v1/push"
+  }
+}
