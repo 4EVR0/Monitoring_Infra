@@ -255,7 +255,14 @@
       "fieldConfig": {
         "defaults": {
           "color": {"mode": "palette-classic"},
-          "custom": {"lineWidth": 1, "fillOpacity": 10}
+          "custom": {"lineWidth": 1, "fillOpacity": 10},
+          "links": [
+            {
+              "title": "Loki — 함수별 로그 보기",
+              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"backend\\\",func=\\\"${__field.labels.func}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
+              "targetBlank": true
+            }
+          ]
         },
         "overrides": []
       },
@@ -329,7 +336,14 @@
       "fieldConfig": {
         "defaults": {
           "color": {"mode": "palette-classic"},
-          "custom": {"lineWidth": 1, "fillOpacity": 10}
+          "custom": {"lineWidth": 1, "fillOpacity": 10},
+          "links": [
+            {
+              "title": "Loki — 레벨별 로그 보기",
+              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"neo4j\\\",level=\\\"${__field.labels.level}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
+              "targetBlank": true
+            }
+          ]
         },
         "overrides": []
       },
