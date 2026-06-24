@@ -7,5 +7,11 @@ scrape_configs:
     static_configs:
       - targets: ['vast-gpu-server-2.tailb70036.ts.net:18000']
     metrics_path: '/metrics'
+  # 4EVR0 추천 앱(FastAPI) — 추천 파이프라인 단계별 latency/폴백률/요청결과.
+  # ⚠️ 개발자 Mac 로컬이라 상시 가동 아님 → 앱이 꺼져 있으면 이 타깃은 down(정상).
+  - job_name: 'was-app'
+    static_configs:
+      - targets: ['macbook-pro-3.tailb70036.ts.net:8000']
+    metrics_path: '/metrics'
   # 홈서버 메트릭은 Alloy remote_write(push)로 수신 (다른 tailnet이라 pull 불가).
   # airflow 메트릭(EC2/홈서버)도 모두 Alloy push → 별도 scrape 타깃 없음.

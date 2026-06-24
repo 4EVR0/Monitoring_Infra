@@ -18,9 +18,25 @@
 | 처리량 | 토큰 처리량(tokens/s) / 요청 처리율 | 생성·프롬프트 토큰 속도, finished_reason별 req/s |
 | 지연 | E2E / TTFT / TPOT / 큐 대기 (P50·P90·P99) | 응답시간 분해 — 어디서 느린지 |
 | 캐시·효율 | Prefix 캐시 적중률 / 선점률 | 프롬프트 재사용 효율, KV 부족으로 인한 선점 |
+| 앱 파이프라인 (WAS) | 단계별 처리시간 / 폴백률 / 요청율 / 성분 0개 비율 | 추천 1건의 내부 분해 — 어느 단계가 느린가, LLM 장애·데이터 회귀 신호 |
 
 > **병목 진단 팁**: `waiting`이 쌓이고 `큐 대기`가 늘면 → 동시성 한계.
 > `선점`이 발생하면 → KV 캐시 부족(모델/배치 크기 조정 검토).
+
+### 앱 파이프라인 (WAS) 행 — Phase 2 추가
+
+FastAPI 앱(`4EVR0-Server`)이 `/metrics`로 노출하는 비즈니스 메트릭. vLLM(GPU) 메트릭만으로는
+안 보이는 "추천 1건이 왜 N초 걸렸나"를 단계별로 분해해 본다.
+
+| 패널 | 메트릭 | 읽는 법 |
+|------|--------|---------|
+| 단계별 평균 처리시간 (스택) | `recommend_stage_latency_seconds` | extract/neo4j/llm_response 누적 → "추출 1.3s / Neo4j 0.1s / 응답 4.4s"처럼 분해 |
+| 프로필 추출 폴백률 | `profile_extraction_method_total{method}` | `rule_based` 비율 상승 = LLM(vLLM) 장애 조기경보 |
+| 추천 요청 처리율 (ok/error) | `recommend_requests_total{status}` | error 비율로 앱 레벨 실패 추적 |
+| 성분 0개 응답 비율 | `recommend_ingredients_found` | 0개 비율 상승 = Neo4j 데이터/쿼리 회귀 신호 |
+
+> 스크레이프 타깃: `was-app` (`macbook-pro-3.tailb70036.ts.net:8000`) — `prometheus.yml` 참고.
+> ⚠️ 앱이 개발자 Mac 로컬이라 **상시 가동 아님**. 앱이 꺼져 있으면 타깃 down + 패널 No data(정상).
 
 ## 새 환경에 임포트하는 법 (UI)
 
