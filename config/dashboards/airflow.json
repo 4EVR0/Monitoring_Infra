@@ -2,7 +2,7 @@
   "title": "Airflow 모니터링",
   "uid": "airflow-monitoring",
   "schemaVersion": 38,
-  "version": 2,
+  "version": 4,
   "refresh": "30s",
   "time": {"from": "now-1h", "to": "now"},
   "timezone": "browser",
@@ -41,8 +41,8 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "airflow_scheduler_heartbeat",
-          "legendFormat": "heartbeat",
+          "expr": "airflow_scheduler_heartbeat{host=~\"$host\"}",
+          "legendFormat": "{{host}}",
           "refId": "A"
         }
       ],
@@ -58,7 +58,7 @@
           "links": [
             {
               "title": "Loki — DAG 로그 보기",
-              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",dag_id=\\\"${__field.labels.dag_id}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
+              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\",dag_id=\\\"${__field.labels.dag_id}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
               "targetBlank": true
             }
           ]
@@ -76,8 +76,8 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "airflow_dagrun_duration_success{dag_id=~\"$dag_id\",quantile=\"0.5\"}",
-          "legendFormat": "{{dag_id}}",
+          "expr": "airflow_dagrun_duration_success{dag_id=~\"$dag_id\",host=~\"$host\",quantile=\"0.5\"}",
+          "legendFormat": "{{host}} / {{dag_id}}",
           "refId": "A"
         }
       ],
@@ -93,7 +93,7 @@
           "links": [
             {
               "title": "Loki — DAG 로그 보기",
-              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",dag_id=\\\"${__field.labels.dag_id}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
+              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\",dag_id=\\\"${__field.labels.dag_id}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
               "targetBlank": true
             }
           ]
@@ -111,8 +111,8 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "airflow_dagrun_duration_failed{dag_id=~\"$dag_id\",quantile=\"0.5\"}",
-          "legendFormat": "{{dag_id}}",
+          "expr": "airflow_dagrun_duration_failed{dag_id=~\"$dag_id\",host=~\"$host\",quantile=\"0.5\"}",
+          "legendFormat": "{{host}} / {{dag_id}}",
           "refId": "A"
         }
       ],
@@ -128,7 +128,7 @@
           "links": [
             {
               "title": "Loki — 태스크 로그 보기",
-              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",dag_id=\\\"${__field.labels.dag_id}\\\",task_id=\\\"${__field.labels.task_id}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
+              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\",dag_id=\\\"${__field.labels.dag_id}\\\",task_id=\\\"${__field.labels.task_id}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
               "targetBlank": true
             }
           ]
@@ -146,8 +146,8 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "airflow_task_duration{dag_id=~\"$dag_id\",quantile=\"0.5\"}",
-          "legendFormat": "{{dag_id}} / {{task_id}}",
+          "expr": "airflow_task_duration{dag_id=~\"$dag_id\",host=~\"$host\",quantile=\"0.5\"}",
+          "legendFormat": "{{host}} / {{dag_id}} / {{task_id}}",
           "refId": "A"
         }
       ],
@@ -156,8 +156,374 @@
     {
       "collapsed": false,
       "gridPos": {"h": 1, "w": 24, "x": 0, "y": 11},
+      "id": 11,
+      "title": "실행 현황 (실시간 게이지)",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "blue", "value": null},
+              {"color": "green", "value": 1}
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 12},
+      "id": 12,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "description": "지금 실행 중인 태스크 개수 (executor running). 어떤 태스크인지/경과시간은 StatsD로는 안 나옴 — 후속(DB exporter) 작업.",
+      "title": "현재 실행 중 태스크",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(airflow_executor_running_tasks{host=~\"$host\"})",
+          "legendFormat": "running",
+          "refId": "A"
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 1},
+              {"color": "orange", "value": 5}
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 12},
+      "id": 13,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "description": "큐에서 실행 대기 중인 태스크 개수 (executor queued). 계속 쌓이면 슬롯 부족 신호.",
+      "title": "큐 대기 태스크",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(airflow_executor_queued_tasks{host=~\"$host\"})",
+          "legendFormat": "queued",
+          "refId": "A"
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "green", "value": 1}
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 12},
+      "id": 14,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "description": "Executor 가용 슬롯 수. 0이면 더 이상 태스크를 못 띄움 (포화).",
+      "title": "가용 슬롯",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(airflow_executor_open_slots{host=~\"$host\"})",
+          "legendFormat": "open",
+          "refId": "A"
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "red", "value": 1}
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 12},
+      "id": 15,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "description": "슬롯이 없어 굶고 있는(starving) 태스크 수. >0이면 풀/슬롯 증설 검토.",
+      "title": "Starving 태스크",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(airflow_pool_starving_tasks{host=~\"$host\"})",
+          "legendFormat": "starving",
+          "refId": "A"
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"lineWidth": 1, "fillOpacity": 20, "stacking": {"mode": "none"}},
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 16},
+      "id": 16,
+      "options": {
+        "tooltip": {"mode": "multi"},
+        "legend": {"displayMode": "list", "placement": "bottom"}
+      },
+      "description": "실행 중 / 큐 대기 태스크 수 추이. 긴 작업이 도는 동안 running이 길게 유지되는 걸로 \"오래 걸리는 태스크가 있다\"를 간접 확인.",
+      "title": "실행 / 대기 태스크 추이",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum by (host) (airflow_executor_running_tasks{host=~\"$host\"})",
+          "legendFormat": "실행 중 · {{host}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum by (host) (airflow_executor_queued_tasks{host=~\"$host\"})",
+          "legendFormat": "대기 · {{host}}",
+          "refId": "B"
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 22},
+      "id": 17,
+      "title": "태스크 성공 / 실패",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"lineWidth": 1, "fillOpacity": 10},
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byRegexp", "options": ".*실패.*"},
+            "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}]
+          }
+        ]
+      },
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 23},
+      "id": 18,
+      "options": {
+        "tooltip": {"mode": "multi"},
+        "legend": {"displayMode": "list", "placement": "bottom"}
+      },
+      "description": "태스크 인스턴스 성공/실패 발생률 (5분 rate). 실패 라인이 튀면 그 시각 로그 패널을 같이 확인.",
+      "title": "태스크 성공/실패율 (/s)",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum by (host) (rate(airflow_ti_successes{host=~\"$host\"}[5m]))",
+          "legendFormat": "성공 · {{host}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum by (host) (rate(airflow_ti_failures{host=~\"$host\"}[5m]))",
+          "legendFormat": "실패 · {{host}}",
+          "refId": "B"
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"lineWidth": 1, "fillOpacity": 10},
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 6, "w": 8, "x": 12, "y": 23},
+      "id": 19,
+      "options": {
+        "tooltip": {"mode": "multi"},
+        "legend": {"displayMode": "list", "placement": "bottom"}
+      },
+      "description": "DockerOperator 성공/실패 발생률 (5분 rate). 모든 DAG가 DockerOperator라 사실상 전체 오퍼레이터 추이.",
+      "title": "DockerOperator 성공/실패 (/s)",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum by (host) (rate(airflow_operator_successes_DockerOperator{host=~\"$host\"}[5m]))",
+          "legendFormat": "성공 · {{host}}",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum by (host) (rate(airflow_operator_failures_DockerOperator{host=~\"$host\"}[5m]))",
+          "legendFormat": "실패 · {{host}}",
+          "refId": "B"
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "red", "value": 1}
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 6, "w": 4, "x": 20, "y": 23},
+      "id": 20,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "description": "DAG 파일 import 에러 수. >0이면 DAG 파싱 실패(문법 오류 등) — 스케줄 자체가 안 됨.",
+      "title": "DAG import 에러",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum(airflow_dag_processing_import_errors{host=~\"$host\"})",
+          "legendFormat": "import errors",
+          "refId": "A"
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 29},
+      "id": 21,
+      "title": "스케줄러 건강",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"lineWidth": 1, "fillOpacity": 10},
+          "unit": "s",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 30},
+      "id": 22,
+      "options": {
+        "tooltip": {"mode": "multi"},
+        "legend": {"displayMode": "list", "placement": "bottom"}
+      },
+      "description": "모든 DAG 파일을 파싱하는 데 걸린 총 시간. 늘어나면 스케줄러 부하 신호.",
+      "title": "DAG 총 파싱 시간",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "airflow_dag_processing_total_parse_time{host=~\"$host\"}",
+          "legendFormat": "{{host}}",
+          "refId": "A"
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"lineWidth": 1, "fillOpacity": 10},
+          "unit": "ms",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 30},
+      "id": 23,
+      "options": {
+        "tooltip": {"mode": "multi"},
+        "legend": {"displayMode": "list", "placement": "bottom"}
+      },
+      "description": "스케줄러 루프 1회 평균 소요시간 (rate(sum)/rate(count)). 길어지면 스케줄링 지연 발생.",
+      "title": "스케줄러 루프 평균시간",
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum by (host) (rate(airflow_scheduler_scheduler_loop_duration_sum{host=~\"$host\"}[5m])) / sum by (host) (rate(airflow_scheduler_scheduler_loop_duration_count{host=~\"$host\"}[5m]))",
+          "legendFormat": "{{host}}",
+          "refId": "A"
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 36},
       "id": 6,
-      "title": "시스템 리소스 (Airflow EC2)",
+      "title": "시스템 리소스",
       "type": "row"
     },
     {
@@ -172,7 +538,7 @@
         },
         "overrides": []
       },
-      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 12},
+      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 37},
       "id": 7,
       "options": {
         "tooltip": {"mode": "single"},
@@ -182,8 +548,8 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "100 - (avg(irate(node_cpu_seconds_total{job=\"airflow-node\",mode=\"idle\"}[5m])) * 100)",
-          "legendFormat": "CPU %",
+          "expr": "100 - (avg by (host) (irate(node_cpu_seconds_total{job=\"airflow-node\",host=~\"$host\",mode=\"idle\"}[5m])) * 100)",
+          "legendFormat": "CPU % · {{host}}",
           "refId": "A"
         }
       ],
@@ -201,7 +567,7 @@
         },
         "overrides": []
       },
-      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 12},
+      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 37},
       "id": 8,
       "options": {
         "tooltip": {"mode": "single"},
@@ -211,8 +577,8 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "(1 - node_memory_MemAvailable_bytes{job=\"airflow-node\"} / node_memory_MemTotal_bytes{job=\"airflow-node\"}) * 100",
-          "legendFormat": "Memory %",
+          "expr": "(1 - node_memory_MemAvailable_bytes{job=\"airflow-node\",host=~\"$host\"} / node_memory_MemTotal_bytes{job=\"airflow-node\",host=~\"$host\"}) * 100",
+          "legendFormat": "Memory % · {{host}}",
           "refId": "A"
         }
       ],
@@ -237,7 +603,7 @@
         },
         "overrides": []
       },
-      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 18},
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 43},
       "id": 9,
       "options": {
         "colorMode": "background",
@@ -248,8 +614,8 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "100 - (node_filesystem_avail_bytes{job=\"airflow-node\",mountpoint=\"/\"} / node_filesystem_size_bytes{job=\"airflow-node\",mountpoint=\"/\"} * 100)",
-          "legendFormat": "Disk %",
+          "expr": "100 - (node_filesystem_avail_bytes{job=\"airflow-node\",host=~\"$host\",mountpoint=\"/\"} / node_filesystem_size_bytes{job=\"airflow-node\",host=~\"$host\",mountpoint=\"/\"} * 100)",
+          "legendFormat": "Disk % · {{host}}",
           "refId": "A"
         }
       ],
@@ -265,7 +631,7 @@
         },
         "overrides": []
       },
-      "gridPos": {"h": 4, "w": 18, "x": 6, "y": 18},
+      "gridPos": {"h": 4, "w": 18, "x": 6, "y": 43},
       "id": 10,
       "options": {
         "tooltip": {"mode": "multi"},
@@ -275,18 +641,49 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "irate(node_network_receive_bytes_total{job=\"airflow-node\",device!~\"lo|docker.*\"}[5m])",
-          "legendFormat": "in / {{device}}",
+          "expr": "irate(node_network_receive_bytes_total{job=\"airflow-node\",host=~\"$host\",device!~\"lo|docker.*\"}[5m])",
+          "legendFormat": "in · {{host}} / {{device}}",
           "refId": "A"
         },
         {
           "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "irate(node_network_transmit_bytes_total{job=\"airflow-node\",device!~\"lo|docker.*\"}[5m])",
-          "legendFormat": "out / {{device}}",
+          "expr": "irate(node_network_transmit_bytes_total{job=\"airflow-node\",host=~\"$host\",device!~\"lo|docker.*\"}[5m])",
+          "legendFormat": "out · {{host}} / {{device}}",
           "refId": "B"
         }
       ],
       "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 47},
+      "id": 24,
+      "title": "로그 (Loki)",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "loki", "uid": "${loki_datasource}"},
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 48},
+      "id": 25,
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": false,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Descending"
+      },
+      "description": "선택한 서버/DAG의 Airflow 로그 실시간 스트림. 위 메트릭에서 이상 시각을 보고 같은 범위 로그를 여기서 바로 확인. 검색창에 |= \"ERROR\" 추가하면 에러만 필터.",
+      "title": "Airflow 로그",
+      "targets": [
+        {
+          "datasource": {"type": "loki", "uid": "${loki_datasource}"},
+          "expr": "{job=\"airflow\", host=~\"$host\", dag_id=~\"$dag_id\"}",
+          "refId": "A"
+        }
+      ],
+      "type": "logs"
     }
   ],
   "templating": {
@@ -311,14 +708,32 @@
       },
       {
         "datasource": {"type": "prometheus", "uid": "${datasource}"},
-        "definition": "label_values(airflow_dagrun_duration_success, dag_id)",
+        "definition": "label_values(up{job=\"airflow-node\"}, host)",
         "hide": 0,
         "includeAll": true,
+        "allValue": ".+",
+        "multi": true,
+        "label": "서버",
+        "name": "host",
+        "query": {
+          "query": "label_values(up{job=\"airflow-node\"}, host)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "definition": "label_values(airflow_dagrun_duration_success{host=~\"$host\"}, dag_id)",
+        "hide": 0,
+        "includeAll": true,
+        "allValue": ".+",
         "multi": true,
         "label": "DAG",
         "name": "dag_id",
         "query": {
-          "query": "label_values(airflow_dagrun_duration_success, dag_id)",
+          "query": "label_values(airflow_dagrun_duration_success{host=~\"$host\"}, dag_id)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 2,
