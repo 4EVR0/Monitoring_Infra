@@ -308,7 +308,14 @@
           "color": {"mode": "palette-classic"},
           "custom": {"lineWidth": 1, "fillOpacity": 20, "stacking": {"mode": "none"}},
           "unit": "short",
-          "min": 0
+          "min": 0,
+          "links": [
+            {
+              "title": "Loki — 서버 로그 보기",
+              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
+              "targetBlank": true
+            }
+          ]
         },
         "overrides": []
       },
@@ -350,7 +357,14 @@
           "color": {"mode": "palette-classic"},
           "custom": {"lineWidth": 1, "fillOpacity": 10},
           "unit": "short",
-          "min": 0
+          "min": 0,
+          "links": [
+            {
+              "title": "Loki — 서버 로그 보기",
+              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
+              "targetBlank": true
+            }
+          ]
         },
         "overrides": [
           {
@@ -390,7 +404,14 @@
           "color": {"mode": "palette-classic"},
           "custom": {"lineWidth": 1, "fillOpacity": 10},
           "unit": "short",
-          "min": 0
+          "min": 0,
+          "links": [
+            {
+              "title": "Loki — 서버 로그 보기",
+              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
+              "targetBlank": true
+            }
+          ]
         },
         "overrides": []
       },
@@ -468,7 +489,14 @@
           "color": {"mode": "palette-classic"},
           "custom": {"lineWidth": 1, "fillOpacity": 10},
           "unit": "s",
-          "min": 0
+          "min": 0,
+          "links": [
+            {
+              "title": "Loki — 서버 로그 보기",
+              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
+              "targetBlank": true
+            }
+          ]
         },
         "overrides": []
       },
@@ -497,7 +525,14 @@
           "color": {"mode": "palette-classic"},
           "custom": {"lineWidth": 1, "fillOpacity": 10},
           "unit": "ms",
-          "min": 0
+          "min": 0,
+          "links": [
+            {
+              "title": "Loki — 서버 로그 보기",
+              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
+              "targetBlank": true
+            }
+          ]
         },
         "overrides": []
       },
@@ -534,7 +569,14 @@
           "custom": {"lineWidth": 1, "fillOpacity": 10},
           "unit": "percent",
           "min": 0,
-          "max": 100
+          "max": 100,
+          "links": [
+            {
+              "title": "Loki — 서버 로그 보기",
+              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
+              "targetBlank": true
+            }
+          ]
         },
         "overrides": []
       },
@@ -563,7 +605,14 @@
           "custom": {"lineWidth": 1, "fillOpacity": 10},
           "unit": "percent",
           "min": 0,
-          "max": 100
+          "max": 100,
+          "links": [
+            {
+              "title": "Loki — 서버 로그 보기",
+              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
+              "targetBlank": true
+            }
+          ]
         },
         "overrides": []
       },
@@ -627,7 +676,14 @@
         "defaults": {
           "color": {"mode": "palette-classic"},
           "custom": {"lineWidth": 1, "fillOpacity": 10},
-          "unit": "Bps"
+          "unit": "Bps",
+          "links": [
+            {
+              "title": "Loki — 서버 로그 보기",
+              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
+              "targetBlank": true
+            }
+          ]
         },
         "overrides": []
       },
