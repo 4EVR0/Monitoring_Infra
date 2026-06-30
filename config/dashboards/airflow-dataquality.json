@@ -2,44 +2,365 @@
   "title": "Oliveyoung 데이터 정합성",
   "uid": "oliveyoung-dataquality",
   "schemaVersion": 38,
-  "version": 1,
+  "version": 2,
   "refresh": "5m",
-  "time": {"from": "now-30d", "to": "now"},
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
   "timezone": "browser",
   "panels": [
     {
       "collapsed": false,
-      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 100,
+      "title": "정합성 점수판 (최신 run)",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "${loki_datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.85
+              },
+              {
+                "color": "green",
+                "value": 0.95
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 1
+      },
+      "id": 101,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "description": "최신 silver→gold INCI 매핑률. 초록 ≥0.95 / 노랑 ≥0.85 / 빨강 그 미만.",
+      "title": "INCI 매핑률",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki_datasource}"
+          },
+          "expr": "last_over_time({job=\"airflow\", task_id=\"silver_to_gold\"} |= `\"DQ\"` | regexp `\"match_rate\":\\s*(?P<match_rate>[0-9.]+)` | label_format filename=\"\" | unwrap match_rate [29d])",
+          "legendFormat": "match_rate",
+          "refId": "A"
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "${loki_datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.05
+              },
+              {
+                "color": "red",
+                "value": 0.1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 1
+      },
+      "id": 102,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "description": "처리된 행 중 에러 비중 = error/(ok+error). 낮을수록 좋음 (초록 ≤0.05 / 노랑 ≤0.1 / 빨강 초과). dedup 영향 없는 닫힌 비율.",
+      "title": "전처리 에러율",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki_datasource}"
+          },
+          "expr": "last_over_time({job=\"airflow\", task_id=\"bronze_to_silver\"} |= `\"DQ\"` | regexp `\"error_rate\":\\s*(?P<error_rate>[0-9.]+)` | label_format filename=\"\" | unwrap error_rate [29d])",
+          "legendFormat": "error_rate",
+          "refId": "A"
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "${loki_datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "unit": "short",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 1
+      },
+      "id": 103,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "description": "최신 크롤의 이동 실패 카테고리 수. 0이면 정상, 1 이상이면 카테고리 누락(크롤 결함).",
+      "title": "카테고리 실패",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki_datasource}"
+          },
+          "expr": "last_over_time({job=\"airflow\", task_id=\"crawl\"} |= `\"DQ\"` | regexp `\"categories_failed\":\\s*(?P<categories_failed>[0-9.]+)` | label_format filename=\"\" | unwrap categories_failed [29d])",
+          "legendFormat": "failed",
+          "refId": "A"
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "${loki_datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "unit": "short",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 1
+      },
+      "id": 104,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "description": "최신 크롤의 0건 카테고리 수. 0이면 정상, 1 이상이면 수집 누락 의심.",
+      "title": "카테고리 0건",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki_datasource}"
+          },
+          "expr": "last_over_time({job=\"airflow\", task_id=\"crawl\"} |= `\"DQ\"` | regexp `\"categories_zero\":\\s*(?P<categories_zero>[0-9.]+)` | label_format filename=\"\" | unwrap categories_zero [29d])",
+          "legendFormat": "zero",
+          "refId": "A"
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
       "id": 1,
       "title": "매핑 품질 (silver→gold)",
       "type": "row"
     },
     {
-      "datasource": {"type": "loki", "uid": "${loki_datasource}"},
+      "datasource": {
+        "type": "loki",
+        "uid": "${loki_datasource}"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "thresholds"},
-          "custom": {"drawStyle": "line", "lineWidth": 2, "showPoints": "always", "pointSize": 6, "spanNulls": true, "fillOpacity": 0, "thresholdsStyle": {"mode": "line"}},
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "showPoints": "always",
+            "pointSize": 6,
+            "spanNulls": true,
+            "fillOpacity": 0,
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
           "unit": "percentunit",
           "min": 0,
           "max": 1,
-          "thresholds": {"mode": "absolute", "steps": [
-            {"color": "red", "value": null},
-            {"color": "yellow", "value": 0.85},
-            {"color": "green", "value": 0.95}
-          ]}
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.85
+              },
+              {
+                "color": "green",
+                "value": 0.95
+              }
+            ]
+          }
         },
         "overrides": []
       },
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 1},
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 6
+      },
       "id": 2,
-      "options": {"tooltip": {"mode": "multi"}, "legend": {"displayMode": "list", "placement": "bottom"}},
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
       "description": "silver→gold 단계 INCI 매핑률. 실행마다 한 점. 급락 시 성분 사전/소스 변동 의심.",
       "title": "INCI 매핑률 (silver→gold)",
       "targets": [
         {
-          "datasource": {"type": "loki", "uid": "${loki_datasource}"},
-          "expr": "last_over_time({job=\"airflow\", task_id=\"silver_to_gold\"} |= `\"DQ\"` | regexp `(?P<dq>\\{\".*\\})` | line_format `{{ .dq }}` | json | unwrap match_rate [$__interval])",
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki_datasource}"
+          },
+          "expr": "last_over_time({job=\"airflow\", task_id=\"silver_to_gold\"} |= `\"DQ\"` | regexp `\"match_rate\":\\s*(?P<match_rate>[0-9.]+)` | label_format filename=\"\" | unwrap match_rate [$__interval])",
           "legendFormat": "match_rate",
           "refId": "A"
         }
@@ -47,37 +368,71 @@
       "type": "timeseries"
     },
     {
-      "datasource": {"type": "loki", "uid": "${loki_datasource}"},
+      "datasource": {
+        "type": "loki",
+        "uid": "${loki_datasource}"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "palette-classic"},
-          "custom": {"drawStyle": "line", "lineWidth": 2, "showPoints": "always", "pointSize": 6, "spanNulls": true, "fillOpacity": 0},
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "showPoints": "always",
+            "pointSize": 6,
+            "spanNulls": true,
+            "fillOpacity": 0
+          },
           "unit": "short",
           "min": 0
         },
         "overrides": []
       },
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 1},
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 6
+      },
       "id": 3,
-      "options": {"tooltip": {"mode": "multi"}, "legend": {"displayMode": "list", "placement": "bottom"}},
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
       "description": "unique 성분 대비 INCI 매핑 성공/실패 건수.",
       "title": "성분 매핑 건수 (silver→gold)",
       "targets": [
         {
-          "datasource": {"type": "loki", "uid": "${loki_datasource}"},
-          "expr": "last_over_time({job=\"airflow\", task_id=\"silver_to_gold\"} |= `\"DQ\"` | regexp `(?P<dq>\\{\".*\\})` | line_format `{{ .dq }}` | json | unwrap ingredients_unique [$__interval])",
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki_datasource}"
+          },
+          "expr": "last_over_time({job=\"airflow\", task_id=\"silver_to_gold\"} |= `\"DQ\"` | regexp `\"ingredients_unique\":\\s*(?P<ingredients_unique>[0-9.]+)` | label_format filename=\"\" | unwrap ingredients_unique [$__interval])",
           "legendFormat": "unique",
           "refId": "A"
         },
         {
-          "datasource": {"type": "loki", "uid": "${loki_datasource}"},
-          "expr": "last_over_time({job=\"airflow\", task_id=\"silver_to_gold\"} |= `\"DQ\"` | regexp `(?P<dq>\\{\".*\\})` | line_format `{{ .dq }}` | json | unwrap ingredients_matched [$__interval])",
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki_datasource}"
+          },
+          "expr": "last_over_time({job=\"airflow\", task_id=\"silver_to_gold\"} |= `\"DQ\"` | regexp `\"ingredients_matched\":\\s*(?P<ingredients_matched>[0-9.]+)` | label_format filename=\"\" | unwrap ingredients_matched [$__interval])",
           "legendFormat": "matched",
           "refId": "B"
         },
         {
-          "datasource": {"type": "loki", "uid": "${loki_datasource}"},
-          "expr": "last_over_time({job=\"airflow\", task_id=\"silver_to_gold\"} |= `\"DQ\"` | regexp `(?P<dq>\\{\".*\\})` | line_format `{{ .dq }}` | json | unwrap ingredients_unmatched [$__interval])",
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki_datasource}"
+          },
+          "expr": "last_over_time({job=\"airflow\", task_id=\"silver_to_gold\"} |= `\"DQ\"` | regexp `\"ingredients_unmatched\":\\s*(?P<ingredients_unmatched>[0-9.]+)` | label_format filename=\"\" | unwrap ingredients_unmatched [$__interval])",
           "legendFormat": "unmatched",
           "refId": "C"
         }
@@ -86,45 +441,98 @@
     },
     {
       "collapsed": false,
-      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 9},
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
       "id": 4,
       "title": "전처리 · 적재 보존 (bronze→silver)",
       "type": "row"
     },
     {
-      "datasource": {"type": "loki", "uid": "${loki_datasource}"},
+      "datasource": {
+        "type": "loki",
+        "uid": "${loki_datasource}"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "palette-classic"},
-          "custom": {"drawStyle": "line", "lineWidth": 2, "showPoints": "always", "pointSize": 6, "spanNulls": true, "fillOpacity": 0},
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "showPoints": "always",
+            "pointSize": 6,
+            "spanNulls": true,
+            "fillOpacity": 0
+          },
           "unit": "short",
           "min": 0
         },
         "overrides": [
-          {"matcher": {"id": "byName", "options": "error"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}]}
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "error"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
         ]
       },
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 10},
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 15
+      },
       "id": 5,
-      "options": {"tooltip": {"mode": "multi"}, "legend": {"displayMode": "list", "placement": "bottom"}},
-      "description": "bronze 로드 → 정상/에러. 전처리 통과·유실 추세. (정상+에러가 로드와 단순합이 안 맞을 수 있음 — 중복/에러 카운트 기준 관찰)",
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "description": "bronze 로드 → 정상/에러. 전처리 통과·유실 추세. (dedup으로 정상+에러가 로드와 단순합이 안 맞는 게 정상 — 판단은 점수판의 에러율로)",
       "title": "bronze→silver 행 흐름",
       "targets": [
         {
-          "datasource": {"type": "loki", "uid": "${loki_datasource}"},
-          "expr": "last_over_time({job=\"airflow\", task_id=\"bronze_to_silver\"} |= `\"DQ\"` | regexp `(?P<dq>\\{\".*\\})` | line_format `{{ .dq }}` | json | unwrap bronze_loaded [$__interval])",
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki_datasource}"
+          },
+          "expr": "last_over_time({job=\"airflow\", task_id=\"bronze_to_silver\"} |= `\"DQ\"` | regexp `\"bronze_loaded\":\\s*(?P<bronze_loaded>[0-9.]+)` | label_format filename=\"\" | unwrap bronze_loaded [$__interval])",
           "legendFormat": "bronze_loaded",
           "refId": "A"
         },
         {
-          "datasource": {"type": "loki", "uid": "${loki_datasource}"},
-          "expr": "last_over_time({job=\"airflow\", task_id=\"bronze_to_silver\"} |= `\"DQ\"` | regexp `(?P<dq>\\{\".*\\})` | line_format `{{ .dq }}` | json | unwrap silver_ok [$__interval])",
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki_datasource}"
+          },
+          "expr": "last_over_time({job=\"airflow\", task_id=\"bronze_to_silver\"} |= `\"DQ\"` | regexp `\"silver_ok\":\\s*(?P<silver_ok>[0-9.]+)` | label_format filename=\"\" | unwrap silver_ok [$__interval])",
           "legendFormat": "silver_ok",
           "refId": "B"
         },
         {
-          "datasource": {"type": "loki", "uid": "${loki_datasource}"},
-          "expr": "last_over_time({job=\"airflow\", task_id=\"bronze_to_silver\"} |= `\"DQ\"` | regexp `(?P<dq>\\{\".*\\})` | line_format `{{ .dq }}` | json | unwrap silver_error [$__interval])",
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki_datasource}"
+          },
+          "expr": "last_over_time({job=\"airflow\", task_id=\"bronze_to_silver\"} |= `\"DQ\"` | regexp `\"silver_error\":\\s*(?P<silver_error>[0-9.]+)` | label_format filename=\"\" | unwrap silver_error [$__interval])",
           "legendFormat": "error",
           "refId": "C"
         }
@@ -132,64 +540,140 @@
       "type": "timeseries"
     },
     {
-      "datasource": {"type": "loki", "uid": "${loki_datasource}"},
+      "datasource": {
+        "type": "loki",
+        "uid": "${loki_datasource}"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "palette-classic"},
-          "custom": {"drawStyle": "line", "lineWidth": 2, "showPoints": "always", "pointSize": 6, "spanNulls": true, "fillOpacity": 0},
-          "unit": "short",
-          "min": 0
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "showPoints": "always",
+            "pointSize": 6,
+            "spanNulls": true,
+            "fillOpacity": 0,
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.05
+              },
+              {
+                "color": "red",
+                "value": 0.1
+              }
+            ]
+          }
         },
         "overrides": []
       },
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 10},
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 15
+      },
       "id": 6,
-      "options": {"tooltip": {"mode": "multi"}, "legend": {"displayMode": "list", "placement": "bottom"}},
-      "description": "적재 보존: 크롤 수집 상품수 ≈ bronze 로드여야 함 (둘 다 dedup 전). 벌어지면 S3 write↔read 유실 의심. (run 정렬은 대략적 — 최신값 비교)",
-      "title": "적재 보존: crawl 상품수 vs bronze 로드",
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "description": "전처리 에러율 추이 = error/(ok+error). 임계선 위로 올라오면 전처리 품질 저하.",
+      "title": "전처리 에러율 추이 (bronze→silver)",
       "targets": [
         {
-          "datasource": {"type": "loki", "uid": "${loki_datasource}"},
-          "expr": "last_over_time({job=\"airflow\", task_id=\"crawl\"} |= `\"DQ\"` | regexp `(?P<dq>\\{\".*\\})` | line_format `{{ .dq }}` | json | unwrap products_total [$__interval])",
-          "legendFormat": "crawl products",
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki_datasource}"
+          },
+          "expr": "last_over_time({job=\"airflow\", task_id=\"bronze_to_silver\"} |= `\"DQ\"` | regexp `\"error_rate\":\\s*(?P<error_rate>[0-9.]+)` | label_format filename=\"\" | unwrap error_rate [$__interval])",
+          "legendFormat": "error_rate",
           "refId": "A"
-        },
-        {
-          "datasource": {"type": "loki", "uid": "${loki_datasource}"},
-          "expr": "last_over_time({job=\"airflow\", task_id=\"bronze_to_silver\"} |= `\"DQ\"` | regexp `(?P<dq>\\{\".*\\})` | line_format `{{ .dq }}` | json | unwrap bronze_loaded [$__interval])",
-          "legendFormat": "bronze loaded",
-          "refId": "B"
         }
       ],
       "type": "timeseries"
     },
     {
       "collapsed": false,
-      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 18},
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 23
+      },
       "id": 7,
       "title": "수집 안정성 (crawl)",
       "type": "row"
     },
     {
-      "datasource": {"type": "loki", "uid": "${loki_datasource}"},
+      "datasource": {
+        "type": "loki",
+        "uid": "${loki_datasource}"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "palette-classic"},
-          "custom": {"drawStyle": "line", "lineWidth": 2, "showPoints": "always", "pointSize": 6, "spanNulls": true, "fillOpacity": 0},
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "showPoints": "always",
+            "pointSize": 6,
+            "spanNulls": true,
+            "fillOpacity": 0
+          },
           "unit": "short",
           "min": 0
         },
         "overrides": []
       },
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 19},
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
       "id": 8,
-      "options": {"tooltip": {"mode": "multi"}, "legend": {"displayMode": "list", "placement": "bottom"}},
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
       "description": "크롤 수집 상품 수 추이. 직전 대비 급락이면 크롤 결함 의심.",
       "title": "수집 상품 수 (crawl)",
       "targets": [
         {
-          "datasource": {"type": "loki", "uid": "${loki_datasource}"},
-          "expr": "last_over_time({job=\"airflow\", task_id=\"crawl\"} |= `\"DQ\"` | regexp `(?P<dq>\\{\".*\\})` | line_format `{{ .dq }}` | json | unwrap products_total [$__interval])",
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki_datasource}"
+          },
+          "expr": "last_over_time({job=\"airflow\", task_id=\"crawl\"} |= `\"DQ\"` | regexp `\"products_total\":\\s*(?P<products_total>[0-9.]+)` | label_format filename=\"\" | unwrap products_total [$__interval])",
           "legendFormat": "products_total",
           "refId": "A"
         }
@@ -197,35 +681,78 @@
       "type": "timeseries"
     },
     {
-      "datasource": {"type": "loki", "uid": "${loki_datasource}"},
+      "datasource": {
+        "type": "loki",
+        "uid": "${loki_datasource}"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "thresholds"},
-          "custom": {"drawStyle": "line", "lineWidth": 2, "showPoints": "always", "pointSize": 6, "spanNulls": true, "fillOpacity": 0, "thresholdsStyle": {"mode": "line"}},
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "showPoints": "always",
+            "pointSize": 6,
+            "spanNulls": true,
+            "fillOpacity": 0,
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
           "unit": "short",
           "min": 0,
-          "thresholds": {"mode": "absolute", "steps": [
-            {"color": "green", "value": null},
-            {"color": "red", "value": 1}
-          ]}
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
         },
         "overrides": []
       },
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 19},
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
       "id": 9,
-      "options": {"tooltip": {"mode": "multi"}, "legend": {"displayMode": "list", "placement": "bottom"}},
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
       "description": "이동 실패 카테고리 / 0건 카테고리 수. >0이면 카테고리 누락 — 거의 항상 크롤 결함 신호.",
       "title": "카테고리 실패 / 0건 (crawl)",
       "targets": [
         {
-          "datasource": {"type": "loki", "uid": "${loki_datasource}"},
-          "expr": "last_over_time({job=\"airflow\", task_id=\"crawl\"} |= `\"DQ\"` | regexp `(?P<dq>\\{\".*\\})` | line_format `{{ .dq }}` | json | unwrap categories_failed [$__interval])",
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki_datasource}"
+          },
+          "expr": "last_over_time({job=\"airflow\", task_id=\"crawl\"} |= `\"DQ\"` | regexp `\"categories_failed\":\\s*(?P<categories_failed>[0-9.]+)` | label_format filename=\"\" | unwrap categories_failed [$__interval])",
           "legendFormat": "failed",
           "refId": "A"
         },
         {
-          "datasource": {"type": "loki", "uid": "${loki_datasource}"},
-          "expr": "last_over_time({job=\"airflow\", task_id=\"crawl\"} |= `\"DQ\"` | regexp `(?P<dq>\\{\".*\\})` | line_format `{{ .dq }}` | json | unwrap categories_zero [$__interval])",
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki_datasource}"
+          },
+          "expr": "last_over_time({job=\"airflow\", task_id=\"crawl\"} |= `\"DQ\"` | regexp `\"categories_zero\":\\s*(?P<categories_zero>[0-9.]+)` | label_format filename=\"\" | unwrap categories_zero [$__interval])",
           "legendFormat": "zero",
           "refId": "B"
         }
