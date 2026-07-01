@@ -758,6 +758,41 @@
         }
       ],
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "${loki_datasource}"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 32
+      },
+      "id": 10,
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": false,
+        "prettifyLogMessage": false,
+        "enableLogDetails": true,
+        "dedupStrategy": "exact",
+        "sortOrder": "Descending"
+      },
+      "description": "크롤 컨테이너가 시작 때 찍는 코드 버전(main.py CODE_VERSION). 맨 위가 최신 실행. 배포가 실제로 반영됐는지 확인용.",
+      "title": "크롤 코드버전 (최신이 위)",
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki_datasource}"
+          },
+          "expr": "{job=\"airflow\", task_id=\"crawl\"} |= `코드 버전`",
+          "refId": "A"
+        }
+      ],
+      "type": "logs"
     }
   ],
   "templating": {
