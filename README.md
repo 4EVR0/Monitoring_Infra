@@ -11,6 +11,7 @@ prometheus.yml              스크레이프 타깃 + remote_write 수신
 loki-config.yml             단일 바이너리 Loki, 청크는 S3
 alloy/                      앱 로그 수집용 Alloy 설정 (was-app.alloy)
 config/dashboards/          Grafana 대시보드 (as-code JSON)
+dq_api/                     정합성(DQ) 메트릭 조회 API (Iceberg→DuckDB→JSON)
 docs/                       운영 컨텍스트·계획 (gitignore)
 ```
 
@@ -19,6 +20,7 @@ docs/                       운영 컨텍스트·계획 (gitignore)
 | Prometheus | `:9090` | 메트릭 TSDB. Alloy `remote_write` 수신 활성화 |
 | Grafana | `:3000` | 대시보드. Neo4j datasource 플러그인 포함 |
 | Loki | `:3100` | 로그 집계. 인덱스 로컬, 청크는 S3 (IAM Role 인증) |
+| dq_api | `:8000` | 정합성 메트릭 조회 API. Iceberg `dq_metrics` → Grafana(Infinity). 자세한 건 `dq_api/README.md` |
 
 이미지 태그는 모두 고정해 `latest` 자동 업그레이드를 막는다.
 데이터는 named volume 으로 영속화한다
@@ -42,7 +44,8 @@ vLLM 추론 서버           ──Prometheus pull──▶  /metrics
 | 파일 | 내용 |
 |------|------|
 | `airflow.json` | DAG/태스크 실행, 호스트 지표, 로그 점프 |
-| `airflow-dataquality.json` | 파이프라인 데이터 품질 지표 |
+| `airflow-dataquality.json` | 파이프라인 데이터 품질 지표 (Loki 로그 기반) |
+| `airflow-dataquality-table.json` | 정합성 지표 (Iceberg `dq_metrics` → dq_api, Infinity 소스) |
 | `vllm.json` | vLLM 처리량·지연(TTFT/TPOT)·KV 캐시 + 추천 앱 단계별 latency |
 | `neo4j.json` | Neo4j(GraphDB) 상태 |
 
