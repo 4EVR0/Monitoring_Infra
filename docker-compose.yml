@@ -37,6 +37,16 @@ services:
     command: -config.file=/etc/loki/config.yml # 인증은 EC2 IAM 롤(MonitoringServerRole)→S3
     restart: always
 
+  dq_api:
+    build: ./dq_api                            # 정합성(DQ) 메트릭 조회 API (Iceberg→DuckDB→JSON)
+    ports:
+      - "8000:8000"                            # Grafana는 compose 망 DNS(http://dq_api:8000)로 접근
+    environment:
+      # warehouse 경로·리전은 비밀 아님 → compose에 직접. 자격증명은 EC2 IAM 롤(IMDS hop limit=2 필요)
+      - ICEBERG_WAREHOUSE_PATH=s3://oliveyoung-crawl-data/olive_young_iceberg_metadata/
+      - AWS_REGION=ap-northeast-2
+    restart: always
+
 volumes:
   prometheus-data:
   grafana-data:
