@@ -1014,14 +1014,7 @@
         "defaults": {
           "custom": {
             "filterable": true
-          },
-          "links": [
-            {
-              "title": "Iceberg UI에서 이 데이터 보기",
-              "url": "${iceberg_ui_url}/${__data.fields.target_table}?batch_job=${__data.fields.batch_job}",
-              "targetBlank": true
-            }
-          ]
+          }
         },
         "overrides": []
       },
@@ -1041,7 +1034,7 @@
           }
         ]
       },
-      "description": "dq_metrics 최근 행. 셀 클릭 → Iceberg UI 드릴다운(batch_job 기준). URL 스킴은 팀원 작업 후 iceberg_ui_url 변수로 연결.",
+      "description": "dq_metrics 최근 행. Iceberg UI 드릴다운 링크는 팀원 UI가 딥링크(쿼리파람) 지원하면 그때 연결 예정.",
       "title": "최근 DQ 행 (dq_metrics)",
       "targets": [
         {
@@ -1115,17 +1108,6 @@
         "label": "DQ API URL",
         "name": "dq_api_url",
         "query": "http://dq_api:8000",
-        "type": "constant"
-      },
-      {
-        "current": {
-          "text": "https://REPLACE-ME-iceberg-ui",
-          "value": "https://REPLACE-ME-iceberg-ui"
-        },
-        "hide": 0,
-        "label": "Iceberg UI URL",
-        "name": "iceberg_ui_url",
-        "query": "https://REPLACE-ME-iceberg-ui",
         "type": "constant"
       }
     ]
