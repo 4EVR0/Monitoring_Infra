@@ -22,7 +22,7 @@ services:
       - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
-      - GF_INSTALL_PLUGINS=kniepdennis-neo4j-datasource
+      - GF_INSTALL_PLUGINS=kniepdennis-neo4j-datasource,yesoreyeram-infinity-datasource
     volumes:
       - grafana-data:/var/lib/grafana        # 대시보드/데이터소스/계정 영속화 (이전엔 휘발성이었음)
     restart: always
