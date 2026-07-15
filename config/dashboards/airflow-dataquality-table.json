@@ -51,7 +51,19 @@
                 "value": 0.95
               }
             ]
-          }
+          },
+          "links": [
+            {
+              "title": "🔎 Iceberg UI 드릴다운",
+              "url": "${iceberg_ui_url}/?view=drilldown&metric=category_success_count&catalog=oliveyoung_db&table=oliveyoung_silver_current&snapshot_mode=latest",
+              "targetBlank": true
+            },
+            {
+              "title": "📜 Loki 로그 보기",
+              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"silver_to_gold\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
+              "targetBlank": true
+            }
+          ]
         },
         "overrides": []
       },
@@ -131,7 +143,19 @@
                 "value": 0.1
               }
             ]
-          }
+          },
+          "links": [
+            {
+              "title": "🔎 Iceberg UI 드릴다운",
+              "url": "${iceberg_ui_url}/?view=drilldown&metric=category_failure&catalog=oliveyoung_db&table=oliveyoung_silver_error&snapshot_mode=latest",
+              "targetBlank": true
+            },
+            {
+              "title": "📜 Loki 로그 보기",
+              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"bronze_to_silver\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
+              "targetBlank": true
+            }
+          ]
         },
         "overrides": []
       },
@@ -206,7 +230,19 @@
                 "value": 1
               }
             ]
-          }
+          },
+          "links": [
+            {
+              "title": "🔎 Iceberg UI 드릴다운",
+              "url": "${iceberg_ui_url}/?view=drilldown&metric=category_failure&catalog=oliveyoung_db&table=oliveyoung_silver_error&snapshot_mode=latest",
+              "targetBlank": true
+            },
+            {
+              "title": "📜 Loki 로그 보기",
+              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"crawl\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
+              "targetBlank": true
+            }
+          ]
         },
         "overrides": []
       },
@@ -281,7 +317,19 @@
                 "value": 1
               }
             ]
-          }
+          },
+          "links": [
+            {
+              "title": "🔎 Iceberg UI 드릴다운",
+              "url": "${iceberg_ui_url}/?view=drilldown&metric=category_success_count&catalog=oliveyoung_db&table=oliveyoung_silver_current&snapshot_mode=latest",
+              "targetBlank": true
+            },
+            {
+              "title": "📜 Loki 로그 보기",
+              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"crawl\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
+              "targetBlank": true
+            }
+          ]
         },
         "overrides": []
       },
@@ -384,7 +432,19 @@
                 "value": 0.95
               }
             ]
-          }
+          },
+          "links": [
+            {
+              "title": "🔎 Iceberg UI 드릴다운",
+              "url": "${iceberg_ui_url}/?view=drilldown&metric=category_success_count&catalog=oliveyoung_db&table=oliveyoung_silver_current&snapshot_mode=latest&batch_date=${__data.fields.batch_date}",
+              "targetBlank": true
+            },
+            {
+              "title": "📜 Loki 로그 보기",
+              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"silver_to_gold\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
+              "targetBlank": true
+            }
+          ]
         },
         "overrides": []
       },
@@ -431,6 +491,11 @@
               "selector": "metric_value",
               "text": "match_rate",
               "type": "number"
+            },
+            {
+              "selector": "batch_date",
+              "text": "batch_date",
+              "type": "string"
             }
           ]
         }
@@ -456,7 +521,19 @@
             "fillOpacity": 0
           },
           "unit": "short",
-          "min": 0
+          "min": 0,
+          "links": [
+            {
+              "title": "🔎 Iceberg UI 드릴다운",
+              "url": "${iceberg_ui_url}/?view=drilldown&metric=category_success_count&catalog=oliveyoung_db&table=oliveyoung_silver_current&snapshot_mode=latest&batch_date=${__data.fields.batch_date}",
+              "targetBlank": true
+            },
+            {
+              "title": "📜 Loki 로그 보기",
+              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"silver_to_gold\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
+              "targetBlank": true
+            }
+          ]
         },
         "overrides": []
       },
@@ -503,6 +580,11 @@
               "selector": "metric_value",
               "text": "unique",
               "type": "number"
+            },
+            {
+              "selector": "batch_date",
+              "text": "batch_date",
+              "type": "string"
             }
           ]
         },
@@ -530,6 +612,11 @@
               "selector": "metric_value",
               "text": "matched",
               "type": "number"
+            },
+            {
+              "selector": "batch_date",
+              "text": "batch_date",
+              "type": "string"
             }
           ]
         },
@@ -557,6 +644,11 @@
               "selector": "metric_value",
               "text": "unmatched",
               "type": "number"
+            },
+            {
+              "selector": "batch_date",
+              "text": "batch_date",
+              "type": "string"
             }
           ]
         }
@@ -594,7 +686,19 @@
             "fillOpacity": 0
           },
           "unit": "short",
-          "min": 0
+          "min": 0,
+          "links": [
+            {
+              "title": "🔎 Iceberg UI 드릴다운",
+              "url": "${iceberg_ui_url}/?view=drilldown&metric=category_failure&catalog=oliveyoung_db&table=oliveyoung_silver_error&snapshot_mode=latest&batch_date=${__data.fields.batch_date}",
+              "targetBlank": true
+            },
+            {
+              "title": "📜 Loki 로그 보기",
+              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"bronze_to_silver\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
+              "targetBlank": true
+            }
+          ]
         },
         "overrides": []
       },
@@ -641,6 +745,11 @@
               "selector": "metric_value",
               "text": "bronze_loaded",
               "type": "number"
+            },
+            {
+              "selector": "batch_date",
+              "text": "batch_date",
+              "type": "string"
             }
           ]
         },
@@ -668,6 +777,11 @@
               "selector": "metric_value",
               "text": "silver_ok",
               "type": "number"
+            },
+            {
+              "selector": "batch_date",
+              "text": "batch_date",
+              "type": "string"
             }
           ]
         },
@@ -695,6 +809,11 @@
               "selector": "metric_value",
               "text": "silver_error",
               "type": "number"
+            },
+            {
+              "selector": "batch_date",
+              "text": "batch_date",
+              "type": "string"
             }
           ]
         }
@@ -741,7 +860,19 @@
                 "value": 0.1
               }
             ]
-          }
+          },
+          "links": [
+            {
+              "title": "🔎 Iceberg UI 드릴다운",
+              "url": "${iceberg_ui_url}/?view=drilldown&metric=category_failure&catalog=oliveyoung_db&table=oliveyoung_silver_error&snapshot_mode=latest&batch_date=${__data.fields.batch_date}",
+              "targetBlank": true
+            },
+            {
+              "title": "📜 Loki 로그 보기",
+              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"bronze_to_silver\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
+              "targetBlank": true
+            }
+          ]
         },
         "overrides": []
       },
@@ -788,6 +919,11 @@
               "selector": "metric_value",
               "text": "error_rate",
               "type": "number"
+            },
+            {
+              "selector": "batch_date",
+              "text": "batch_date",
+              "type": "string"
             }
           ]
         }
@@ -825,7 +961,19 @@
             "fillOpacity": 0
           },
           "unit": "short",
-          "min": 0
+          "min": 0,
+          "links": [
+            {
+              "title": "🔎 Iceberg UI 드릴다운",
+              "url": "${iceberg_ui_url}/?view=drilldown&metric=ingestion_volume&catalog=oliveyoung_db&table=oliveyoung_silver_current&snapshot_mode=latest&batch_date=${__data.fields.batch_date}",
+              "targetBlank": true
+            },
+            {
+              "title": "📜 Loki 로그 보기",
+              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"crawl\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
+              "targetBlank": true
+            }
+          ]
         },
         "overrides": []
       },
@@ -872,6 +1020,11 @@
               "selector": "metric_value",
               "text": "products_total",
               "type": "number"
+            },
+            {
+              "selector": "batch_date",
+              "text": "batch_date",
+              "type": "string"
             }
           ]
         }
@@ -913,7 +1066,19 @@
                 "value": 1
               }
             ]
-          }
+          },
+          "links": [
+            {
+              "title": "🔎 Iceberg UI 드릴다운",
+              "url": "${iceberg_ui_url}/?view=drilldown&metric=category_failure&catalog=oliveyoung_db&table=oliveyoung_silver_error&snapshot_mode=latest&batch_date=${__data.fields.batch_date}",
+              "targetBlank": true
+            },
+            {
+              "title": "📜 Loki 로그 보기",
+              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"crawl\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
+              "targetBlank": true
+            }
+          ]
         },
         "overrides": []
       },
@@ -960,6 +1125,11 @@
               "selector": "metric_value",
               "text": "failed",
               "type": "number"
+            },
+            {
+              "selector": "batch_date",
+              "text": "batch_date",
+              "type": "string"
             }
           ]
         },
@@ -987,6 +1157,11 @@
               "selector": "metric_value",
               "text": "zero",
               "type": "number"
+            },
+            {
+              "selector": "batch_date",
+              "text": "batch_date",
+              "type": "string"
             }
           ]
         }
@@ -1058,8 +1233,8 @@
               "type": "timestamp"
             },
             {
-              "selector": "batch_job",
-              "text": "batch_job",
+              "selector": "batch_date",
+              "text": "batch_date",
               "type": "string"
             },
             {
@@ -1109,6 +1284,26 @@
         "name": "dq_api_url",
         "query": "http://dq_api:8000",
         "type": "constant"
+      },
+      {
+        "current": {
+          "text": "http://43.200.169.27:8501",
+          "value": "http://43.200.169.27:8501"
+        },
+        "hide": 2,
+        "label": "Iceberg UI URL",
+        "name": "iceberg_ui_url",
+        "query": "http://43.200.169.27:8501",
+        "type": "constant"
+      },
+      {
+        "current": {},
+        "hide": 0,
+        "label": "Loki",
+        "name": "loki_datasource",
+        "query": "loki",
+        "refresh": 1,
+        "type": "datasource"
       }
     ]
   }

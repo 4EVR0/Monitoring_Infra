@@ -69,7 +69,7 @@ def latest(
     """해당 (stage, metric)의 최신 run 값 1건. 점수판 stat 타일용."""
     rows = _query(
         """
-        SELECT metric_value, batch_job, target_table, created_at
+        SELECT metric_value, batch_date, run_id, target_table, created_at
         FROM dq
         WHERE stage = ? AND metric_name = ?
         ORDER BY created_at DESC
@@ -92,7 +92,7 @@ def series(
     # days는 검증된 정수(1~365)라 인터벌에 직접 삽입 — 파라미터 바인딩 인터벌 이슈 회피
     return _query(
         f"""
-        SELECT created_at, metric_value, batch_job
+        SELECT created_at, metric_value, batch_date, run_id
         FROM dq
         WHERE stage = ? AND metric_name = ?
           AND created_at >= now() - INTERVAL '{int(days)}' DAY
@@ -111,7 +111,7 @@ def rows(
     """최근 원시 행. 표/드릴다운용. stage·metric은 선택 필터."""
     return _query(
         """
-        SELECT batch_job, stage, metric_name, metric_value, target_table, created_at
+        SELECT batch_date, run_id, stage, metric_name, metric_value, target_table, created_at
         FROM dq
         WHERE (? IS NULL OR stage = ?)
           AND (? IS NULL OR metric_name = ?)
