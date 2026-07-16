@@ -1,0 +1,15 @@
+# Grafana 알림 연결처(contact point) — as-code provisioning
+# 웹훅 실제 URL은 여기 넣지 않는다. .env(gitignore)의 DISCORD_WEBHOOK_URL을 환경변수로 참조.
+# (public 레포이므로 URL이 커밋되면 누구나 그 채널에 스팸 가능 → 타협 불가)
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: discord            # 알림 정책(notification policy)이 이 이름으로 라우팅
+    receivers:
+      - uid: discord-webhook
+        type: discord
+        settings:
+          url: ${DISCORD_WEBHOOK_URL}
+        # 복구 시 "Resolved ✅" 메시지도 받는다 — 신선도 알림의 복구 신호로 활용
+        disableResolveMessage: false

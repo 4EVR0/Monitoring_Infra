@@ -1,0 +1,223 @@
+# Grafana 알림 룰 5종 — as-code provisioning
+#
+# ┌─ 배포 전 채워야 할 값 3개 (라이브 서버에서 확보) ──────────────────────────┐
+# │ 1) __PROMETHEUS_UID__  : Prometheus 데이터소스 UID                        │
+# │ 2) __INFINITY_UID__    : yesoreyeram-infinity-datasource UID              │
+# │ 3) __MATCH_RATE_MIN__  : match_rate 하한 임계치 (평상시 값 보고 확정)     │
+# │   확인: curl -s -u admin:$GF_PW http://localhost:3000/api/datasources \   │
+# │          | jq -r '.[] | "\(.uid)\t\(.type)\t\(.name)"'                    │
+# │          curl -s "http://localhost:8000/dq/latest?stage=bronze_to_silver&metric=match_rate" │
+# └───────────────────────────────────────────────────────────────────────────┘
+#
+# ⚠️ Infinity 알림 룰은 반드시 parser: backend (알림 엔진은 백엔드 파서만 실행).
+# ⚠️ 첫 로딩 후 Grafana UI에서 각 룰이 정상 평가되는지 1회 검증 권장(모델 스키마 민감).
+apiVersion: 1
+
+groups:
+  # ── Prometheus 소스: 오케스트레이션 알림 (1분 간격) ──────────────────────
+  - orgId: 1
+    name: airflow-orchestration
+    folder: 4evr0-alerts
+    interval: 1m
+    rules:
+      # #2 DAG 실패 — 최근 10분 내 실패한 DAG run 발생
+      - uid: alert-dag-failed
+        title: DAG 실패
+        condition: C
+        for: 0m
+        noDataState: NoData
+        execErrState: Error
+        labels:
+          severity: critical
+        annotations:
+          summary: "DAG 실패 감지 — 최근 10분 내 실패한 DAG run이 있습니다."
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: __PROMETHEUS_UID__
+            model:
+              refId: A
+              editorMode: code
+              expr: increase(airflow_dagrun_duration_failed_count[10m])
+              instant: true
+              range: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              reducer: last
+              expression: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+
+      # #3 스케줄러 다운 — 최근 5분간 heartbeat 증가 없음 (거의 공짜인데 제일 실전적)
+      - uid: alert-scheduler-down
+        title: Airflow 스케줄러 다운
+        condition: C
+        for: 5m           # 스크랩 일시 누락에 안 떨리도록 지속 조건
+        noDataState: Alerting   # heartbeat 시리즈 자체가 사라져도 = 다운
+        execErrState: Error
+        labels:
+          severity: critical
+        annotations:
+          summary: "Airflow 스케줄러 heartbeat가 5분 이상 없습니다 — 스케줄러 다운 의심."
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: __PROMETHEUS_UID__
+            model:
+              refId: A
+              editorMode: code
+              expr: increase(airflow_scheduler_heartbeat[5m])
+              instant: true
+              range: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              reducer: last
+              expression: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: lt, params: [1] }   # 5분간 heartbeat < 1건 = 다운
+
+  # ── Infinity(dq_api) 소스: 데이터 신선도·품질 알림 (10분 간격) ────────────
+  # dq_api는 요청마다 Iceberg 풀스캔 → 자주 때리지 않도록 간격을 넉넉히.
+  - orgId: 1
+    name: pipeline-data-quality
+    folder: 4evr0-alerts
+    interval: 10m
+    rules:
+      # #1a crawl 신선도 — 크롤이 96h(≈4일) 넘게 안 돎 (크롤 주기 3일 + 버퍼)
+      - uid: alert-crawl-freshness
+        title: crawl 신선도
+        condition: C
+        for: 0m           # age>96h는 이미 오래 지속된 상태
+        noDataState: NoData
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: "crawl 파이프라인이 96시간 넘게 실행되지 않았습니다 (age {{ $values.B }}h)."
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: __INFINITY_UID__
+            model:
+              refId: A
+              datasource: { type: yesoreyeram-infinity-datasource, uid: __INFINITY_UID__ }
+              type: json
+              source: url
+              parser: backend
+              format: table
+              url: http://dq_api:8000/dq/freshness?stage=crawl
+              url_options: { method: GET }
+              root_selector: ""
+              columns:
+                - { selector: age_hours, text: age_hours, type: number }
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, reducer: last, expression: A }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [96] }
+
+      # #1b 전처리 지연 — 새 crawl 뒤 전처리(silver_to_gold)가 1h 넘게 못 따라옴
+      - uid: alert-preprocess-lag
+        title: 전처리 지연
+        condition: C
+        for: 0m
+        noDataState: NoData    # silver 역대 미실행이면 lag=NULL → 미알림 (#2가 커버)
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: "새 crawl 데이터 대비 전처리가 1시간 넘게 지연됨 (lag {{ $values.B }}h)."
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: __INFINITY_UID__
+            model:
+              refId: A
+              datasource: { type: yesoreyeram-infinity-datasource, uid: __INFINITY_UID__ }
+              type: json
+              source: url
+              parser: backend
+              format: table
+              url: http://dq_api:8000/dq/pipeline-lag
+              url_options: { method: GET }
+              root_selector: ""
+              columns:
+                - { selector: lag_hours, text: lag_hours, type: number }
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, reducer: last, expression: A }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [1] }
+
+      # #4 데이터 품질 급락 — bronze_to_silver match_rate가 임계치 미만
+      - uid: alert-match-rate-drop
+        title: 데이터 품질 급락(match_rate)
+        condition: C
+        for: 0m           # 10분 간격 평가라 1회 급락도 유의미
+        noDataState: NoData
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: "bronze_to_silver match_rate가 임계치 미만입니다 (값 {{ $values.B }})."
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: __INFINITY_UID__
+            model:
+              refId: A
+              datasource: { type: yesoreyeram-infinity-datasource, uid: __INFINITY_UID__ }
+              type: json
+              source: url
+              parser: backend
+              format: table
+              url: http://dq_api:8000/dq/latest?stage=bronze_to_silver&metric=match_rate
+              url_options: { method: GET }
+              root_selector: ""
+              columns:
+                - { selector: metric_value, text: metric_value, type: number }
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, reducer: last, expression: A }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: lt, params: [__MATCH_RATE_MIN__] }
