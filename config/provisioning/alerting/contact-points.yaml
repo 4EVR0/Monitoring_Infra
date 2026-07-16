@@ -1,6 +1,6 @@
 # Grafana 알림 연결처(contact point) — as-code provisioning
-# 웹훅 실제 URL은 여기 넣지 않는다. .env(gitignore)의 DISCORD_ALERT_WEBHOOK_URL을 환경변수로 참조.
-# (public 레포이므로 URL이 커밋되면 누구나 그 채널에 스팸 가능 → 타협 불가)
+# 웹훅 URL은 .env(gitignore)의 DISCORD_ALERT_WEBHOOK_URL 참조 (public 레포이므로 커밋 금지).
+# 메시지 디자인(스타일 B)은 title/message 인라인 템플릿으로 직접 정의 — 연결처 필드가 곧 Go 템플릿.
 apiVersion: 1
 
 contactPoints:
@@ -11,8 +11,12 @@ contactPoints:
         type: discord
         settings:
           url: ${DISCORD_ALERT_WEBHOOK_URL}
-          # 메시지 디자인은 templates.yaml(스타일 B)에서 정의 → 여기서 참조
-          title: '{{ template "discord.title" . }}'
-          message: '{{ template "discord.message" . }}'
+          # 제목: 심각도 이모지 + [올리브영 {pipeline}] + 알림명 (복구 시 ✅ + 해소)
+          title: '{{ if eq .Status "resolved" }}✅{{ else if eq .CommonLabels.severity "critical" }}🚨{{ else }}⚠️{{ end }} [올리브영 {{ .CommonLabels.pipeline }}] {{ .CommonLabels.alertname }}{{ if eq .Status "resolved" }} 해소{{ end }}'
+          # 본문: 요약 + (DAG실패면 dag_id) + 링크(파이프라인은 로그+대시보드, 그 외는 대시보드)
+          message: |
+            {{ range .Alerts }}{{ .Annotations.summary }}
+            {{ if .Labels.dag_id }}💥 실패 DAG   {{ .Labels.dag_id }}
+            {{ end }}{{ end }}{{ if eq .CommonLabels.pipeline "파이프라인" }}🔗 [로그 보기](http://43.200.169.27:3000/explore?schemaVersion=1&panes=%7B%22log%22%3A%7B%22datasource%22%3A%22cfp3bjqtnftvkf%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22expr%22%3A%22%7Bjob%3D%5C%22airflow%5C%22%7D%22%2C%22datasource%22%3A%7B%22type%22%3A%22loki%22%2C%22uid%22%3A%22cfp3bjqtnftvkf%22%7D%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D&orgId=1)  ·  [대시보드](http://43.200.169.27:3000/d/airflow-monitoring){{ else }}🔗 [대시보드](http://43.200.169.27:3000/d/oliveyoung-dq-table){{ end }}
         # 복구 시 "Resolved ✅" 메시지도 받는다 — 신선도 알림의 복구 신호로 활용
         disableResolveMessage: false
