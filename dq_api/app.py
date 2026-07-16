@@ -102,6 +102,55 @@ def series(
     )
 
 
+@app.get("/dq/freshness")
+def freshness(
+    stage: str | None = Query(None, description="특정 stage만 (미지정 시 전 stage)"),
+):
+    """stage별 최근 run 신선도(age_hours). crawl 신선도 알림·대시보드용.
+
+    임계 판정은 안 한다 — age_hours 숫자만 내려주고 임계치(96h 등)는 Grafana 룰이 적용.
+    신선도는 batch_date(논리 기준일, 백필 시 과거)가 아니라 created_at(실제 기록 시각)으로 잰다.
+    """
+    return _query(
+        """
+        SELECT stage,
+               MAX(created_at)                                   AS last_run_at,
+               round(epoch(now() - MAX(created_at)) / 3600.0, 1) AS age_hours
+        FROM dq
+        WHERE (? IS NULL OR stage = ?)
+        GROUP BY stage
+        ORDER BY stage
+        """,
+        [stage, stage],
+    )
+
+
+@app.get("/dq/pipeline-lag")
+def pipeline_lag():
+    """전처리 DAG가 최신 crawl을 얼마나 못 따라잡았나(lag_hours). 전처리 지연 알림용.
+
+    전처리는 crawl 완료 시 트리거되므로 절대 신선도(1h 등)로는 못 잰다
+    (crawl 주기가 3~4일이라 절대 age는 늘 크다) → crawl 대비 상대 지연으로 판정.
+    lag_hours = crawl 마지막 실행 − silver_to_gold(전처리 종단) 마지막 실행.
+      · 정상: 전처리가 crawl 직후 따라옴 → lag ≈ 0 (음수면 0 이하)
+      · 이상: 새 crawl 뒤 전처리 실패/지연 → lag 증가 → Grafana 룰이 >1h 판정
+    (전처리가 역대 한 번도 안 돈 극단 케이스는 lag=NULL → 미알림. #2 DAG 실패 알림이 커버)
+    """
+    return _query(
+        """
+        SELECT
+            MAX(created_at) FILTER (WHERE stage = 'crawl')          AS crawl_last_run,
+            MAX(created_at) FILTER (WHERE stage = 'silver_to_gold') AS silver_last_run,
+            round(epoch(
+                MAX(created_at) FILTER (WHERE stage = 'crawl')
+                - MAX(created_at) FILTER (WHERE stage = 'silver_to_gold')
+            ) / 3600.0, 1) AS lag_hours
+        FROM dq
+        """,
+        [],
+    )
+
+
 @app.get("/dq/rows")
 def rows(
     stage: str | None = Query(None),

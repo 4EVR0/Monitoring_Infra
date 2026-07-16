@@ -1,0 +1,13 @@
+# 알림 라우팅 정책 — 모든 알림을 discord 연결처로 보낸다.
+# (루트 정책을 provisioning하면 Grafana 기본 정책을 이 내용으로 대체함)
+apiVersion: 1
+
+policies:
+  - orgId: 1
+    receiver: discord          # contact-points.yaml 의 name 과 일치
+    group_by:
+      - grafana_folder
+      - alertname
+    group_wait: 30s            # 최초 알림 전 같은 그룹 버퍼링 (짧게)
+    group_interval: 5m         # 그룹에 새 알림 추가 시 재전송 간격
+    repeat_interval: 4h        # 계속 firing이면 재알림 주기 (스팸 방지로 넉넉히)

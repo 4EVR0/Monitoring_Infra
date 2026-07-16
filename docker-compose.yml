@@ -23,8 +23,10 @@ services:
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
       - GF_INSTALL_PLUGINS=kniepdennis-neo4j-datasource,yesoreyeram-infinity-datasource
+      - DISCORD_ALERT_WEBHOOK_URL=${DISCORD_ALERT_WEBHOOK_URL}  # 알림 연결처 YAML이 참조. 실제 값은 .env(gitignore)
     volumes:
       - grafana-data:/var/lib/grafana        # 대시보드/데이터소스/계정 영속화 (이전엔 휘발성이었음)
+      - ./config/provisioning:/etc/grafana/provisioning  # 알림 룰·연결처 as-code 로딩
     restart: always
 
   loki:

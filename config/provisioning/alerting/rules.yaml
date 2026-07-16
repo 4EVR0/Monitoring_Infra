@@ -1,0 +1,345 @@
+# Grafana 알림 룰 8종 — as-code provisioning
+#
+# 데이터소스 UID·임계치는 라이브 서버(2026-07-16)에서 확보해 반영:
+#   Prometheus       = cfltz3i4tlfr4e
+#   Infinity(DQ API) = efqsx4w1y7caof
+#   match_rate 평상시 ≈ 0.991 (silver_to_gold, 0~1) → 하한 0.95
+#   crawl 정상치: products_total 2300~3600 / categories_zero 0 / bronze error_rate ~0.41(dedup)
+#
+# pipeline 라벨(크롤링/전처리/파이프라인)로 Discord 메시지 제목을 라우팅한다.
+# ⚠️ Infinity 알림 룰은 반드시 parser: backend. 첫 로딩 후 UI에서 1회 검증 권장.
+apiVersion: 1
+
+groups:
+  # ── Prometheus 소스: 오케스트레이션 알림 (1분 간격) ──────────────────────
+  - orgId: 1
+    name: airflow-orchestration
+    folder: 4evr0-alerts
+    interval: 1m
+    rules:
+      # #2 DAG 실패 — 최근 10분 내 실패한 DAG run 발생
+      - uid: alert-dag-failed
+        title: DAG 실패
+        condition: C
+        for: 0m
+        noDataState: NoData
+        execErrState: Error
+        labels:
+          severity: critical
+          pipeline: 파이프라인
+        annotations:
+          summary: "DAG 실패 감지 — 최근 10분 내 실패한 DAG run이 있습니다."
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: cfltz3i4tlfr4e
+            model:
+              refId: A
+              editorMode: code
+              expr: increase(airflow_dagrun_duration_failed_count[10m])
+              instant: true
+              range: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              reducer: last
+              expression: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+
+      # #3 스케줄러 다운 — 최근 5분간 heartbeat 증가 없음 (거의 공짜인데 제일 실전적)
+      - uid: alert-scheduler-down
+        title: Airflow 스케줄러 다운
+        condition: C
+        for: 5m           # 스크랩 일시 누락에 안 떨리도록 지속 조건
+        noDataState: Alerting   # heartbeat 시리즈 자체가 사라져도 = 다운
+        execErrState: Error
+        labels:
+          severity: critical
+          pipeline: 파이프라인
+        annotations:
+          summary: "Airflow 스케줄러 heartbeat가 5분 이상 없습니다 — 스케줄러 다운 의심."
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: cfltz3i4tlfr4e
+            model:
+              refId: A
+              editorMode: code
+              expr: increase(airflow_scheduler_heartbeat[5m])
+              instant: true
+              range: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              reducer: last
+              expression: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: lt, params: [1] }   # 5분간 heartbeat < 1건 = 다운
+
+  # ── Infinity(dq_api) 소스: 데이터 신선도·품질 알림 (10분 간격) ────────────
+  # dq_api는 요청마다 Iceberg 풀스캔 → 자주 때리지 않도록 간격을 넉넉히.
+  - orgId: 1
+    name: pipeline-data-quality
+    folder: 4evr0-alerts
+    interval: 10m
+    rules:
+      # #1a crawl 신선도 — 크롤이 96h(≈4일) 넘게 안 돎 (크롤 주기 3일 + 버퍼)
+      - uid: alert-crawl-freshness
+        title: crawl 신선도
+        condition: C
+        for: 0m           # age>96h는 이미 오래 지속된 상태
+        noDataState: NoData
+        execErrState: Error
+        labels:
+          severity: warning
+          pipeline: 크롤링
+        annotations:
+          summary: 'crawl 파이프라인이 96시간 넘게 실행되지 않았습니다 (age {{ printf "%.1f" $values.B.Value }}h).'
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: efqsx4w1y7caof
+            model:
+              refId: A
+              datasource: { type: yesoreyeram-infinity-datasource, uid: efqsx4w1y7caof }
+              type: json
+              source: url
+              parser: backend
+              format: table
+              url: http://dq_api:8000/dq/freshness?stage=crawl
+              url_options: { method: GET }
+              root_selector: ""
+              columns:
+                - { selector: age_hours, text: age_hours, type: number }
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, reducer: last, expression: A }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [96] }
+
+      # #1b 전처리 지연 — 새 crawl 뒤 전처리(silver_to_gold)가 1h 넘게 못 따라옴
+      - uid: alert-preprocess-lag
+        title: 전처리 지연
+        condition: C
+        for: 0m
+        noDataState: NoData    # silver 역대 미실행이면 lag=NULL → 미알림 (#2가 커버)
+        execErrState: Error
+        labels:
+          severity: warning
+          pipeline: 전처리
+        annotations:
+          summary: '새 crawl 데이터 대비 전처리가 1시간 넘게 지연됨 (lag {{ printf "%.1f" $values.B.Value }}h).'
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: efqsx4w1y7caof
+            model:
+              refId: A
+              datasource: { type: yesoreyeram-infinity-datasource, uid: efqsx4w1y7caof }
+              type: json
+              source: url
+              parser: backend
+              format: table
+              url: http://dq_api:8000/dq/pipeline-lag
+              url_options: { method: GET }
+              root_selector: ""
+              columns:
+                - { selector: lag_hours, text: lag_hours, type: number }
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, reducer: last, expression: A }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [1] }
+
+      # #4 데이터 품질 급락 — silver_to_gold match_rate(성분 매칭율)가 임계치 미만
+      - uid: alert-match-rate-drop
+        title: 데이터 품질 급락(match_rate)
+        condition: C
+        for: 0m           # 10분 간격 평가라 1회 급락도 유의미
+        noDataState: NoData
+        execErrState: Error
+        labels:
+          severity: warning
+          pipeline: 전처리
+        annotations:
+          summary: 'silver_to_gold match_rate가 임계치 미만입니다 (값 {{ printf "%.3f" $values.B.Value }}).'
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: efqsx4w1y7caof
+            model:
+              refId: A
+              datasource: { type: yesoreyeram-infinity-datasource, uid: efqsx4w1y7caof }
+              type: json
+              source: url
+              parser: backend
+              format: table
+              url: http://dq_api:8000/dq/latest?stage=silver_to_gold&metric=match_rate
+              url_options: { method: GET }
+              root_selector: ""
+              columns:
+                - { selector: metric_value, text: metric_value, type: number }
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, reducer: last, expression: A }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: lt, params: [0.95] }
+
+      # #5 빈 카테고리 — 크롤됐지만 상품 0개인 카테고리 발생 (에러 없는 조용한 데이터 손실)
+      - uid: alert-crawl-categories-zero
+        title: 빈 카테고리
+        condition: C
+        for: 0m
+        noDataState: NoData
+        execErrState: Error
+        labels:
+          severity: warning
+          pipeline: 크롤링
+        annotations:
+          summary: '크롤됐지만 상품 0개인 카테고리가 있습니다 ({{ printf "%.0f" $values.B.Value }}개).'
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: efqsx4w1y7caof
+            model:
+              refId: A
+              datasource: { type: yesoreyeram-infinity-datasource, uid: efqsx4w1y7caof }
+              type: json
+              source: url
+              parser: backend
+              format: table
+              url: http://dq_api:8000/dq/latest?stage=crawl&metric=categories_zero
+              url_options: { method: GET }
+              root_selector: ""
+              columns:
+                - { selector: metric_value, text: metric_value, type: number }
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, reducer: last, expression: A }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+
+      # #6 수집량 급감 — crawl 수집 상품이 비정상적으로 적음 (크롤 대량실패, 07-05에 751로 폭락)
+      - uid: alert-crawl-products-low
+        title: 수집량 급감
+        condition: C
+        for: 0m
+        noDataState: NoData
+        execErrState: Error
+        labels:
+          severity: warning
+          pipeline: 크롤링
+        annotations:
+          summary: 'crawl 수집 상품이 비정상적으로 적습니다 ({{ printf "%.0f" $values.B.Value }}건, 임계 1500).'
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: efqsx4w1y7caof
+            model:
+              refId: A
+              datasource: { type: yesoreyeram-infinity-datasource, uid: efqsx4w1y7caof }
+              type: json
+              source: url
+              parser: backend
+              format: table
+              url: http://dq_api:8000/dq/latest?stage=crawl&metric=products_total
+              url_options: { method: GET }
+              root_selector: ""
+              columns:
+                - { selector: metric_value, text: metric_value, type: number }
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, reducer: last, expression: A }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: lt, params: [1500] }
+
+      # #7 전처리 오류율 상승 — bronze→silver error_rate가 dedup 정상선(~0.41) 크게 초과
+      - uid: alert-silver-error-rate
+        title: 전처리 오류율 상승
+        condition: C
+        for: 0m
+        noDataState: NoData
+        execErrState: Error
+        labels:
+          severity: warning
+          pipeline: 전처리
+        annotations:
+          summary: 'bronze→silver 오류율이 임계치를 초과했습니다 (값 {{ printf "%.3f" $values.B.Value }}, 임계 0.7).'
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: efqsx4w1y7caof
+            model:
+              refId: A
+              datasource: { type: yesoreyeram-infinity-datasource, uid: efqsx4w1y7caof }
+              type: json
+              source: url
+              parser: backend
+              format: table
+              url: http://dq_api:8000/dq/latest?stage=bronze_to_silver&metric=error_rate
+              url_options: { method: GET }
+              root_selector: ""
+              columns:
+                - { selector: metric_value, text: metric_value, type: number }
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, reducer: last, expression: A }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [0.7] }
