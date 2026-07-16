@@ -1,0 +1,24 @@
+# Discord 알림 메시지 템플릿 (스타일 B) — as-code provisioning
+# contact-points.yaml 의 Discord 연결처가 title/message 로 이 템플릿을 참조한다.
+# 제목: 심각도 이모지 + [올리브영 {pipeline}] + 알림명   (pipeline·severity 라벨 사용)
+# 본문: 요약 + (DAG실패면 dag_id) + 링크(pipeline별 대시보드 / 파이프라인은 로그도)
+# ⚠️ Go 템플릿이라 첫 배포 후 Discord 실제 렌더를 1회 눈으로 확인 권장.
+apiVersion: 1
+
+templates:
+  - orgId: 1
+    name: discord
+    template: |
+      {{- define "discord.title" -}}
+      {{ if eq .Status "resolved" }}✅{{ else if eq .CommonLabels.severity "critical" }}🚨{{ else }}⚠️{{ end }} [올리브영 {{ .CommonLabels.pipeline }}] {{ .CommonLabels.alertname }}{{ if eq .Status "resolved" }} 해소{{ end }}
+      {{- end -}}
+
+      {{- define "discord.links" -}}
+      {{ if eq .CommonLabels.pipeline "파이프라인" }}🔗 [로그 보기](http://43.200.169.27:3000/explore?schemaVersion=1&panes=%7B%22log%22%3A%7B%22datasource%22%3A%22cfp3bjqtnftvkf%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22expr%22%3A%22%7Bjob%3D%5C%22airflow%5C%22%7D%22%2C%22datasource%22%3A%7B%22type%22%3A%22loki%22%2C%22uid%22%3A%22cfp3bjqtnftvkf%22%7D%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D&orgId=1)  ·  [대시보드](http://43.200.169.27:3000/d/airflow-monitoring){{ else }}🔗 [대시보드](http://43.200.169.27:3000/d/oliveyoung-dq-table){{ end }}
+      {{- end -}}
+
+      {{- define "discord.message" -}}
+      {{ range .Alerts }}{{ .Annotations.summary }}
+      {{ if .Labels.dag_id }}💥 실패 DAG   {{ .Labels.dag_id }}
+      {{ end }}{{ end }}{{ template "discord.links" . }}
+      {{- end -}}
