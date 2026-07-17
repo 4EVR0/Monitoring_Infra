@@ -19,4 +19,6 @@ contactPoints:
             {{ .CommonAnnotations.summary }}
             {{ if .CommonLabels.dag_id }}💥 실패 DAG   {{ .CommonLabels.dag_id }}
             {{ end }}{{ if eq .CommonLabels.pipeline "파이프라인" }}🔗 [로그 보기](http://43.200.169.27:3000/explore?schemaVersion=1&panes=%7B%22log%22%3A%7B%22datasource%22%3A%22cfp3bjqtnftvkf%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22expr%22%3A%22%7Bjob%3D%5C%22airflow%5C%22%7D%22%2C%22datasource%22%3A%7B%22type%22%3A%22loki%22%2C%22uid%22%3A%22cfp3bjqtnftvkf%22%7D%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D&orgId=1)  ·  [대시보드](http://43.200.169.27:3000/d/airflow-monitoring){{ else }}🔗 [대시보드](http://43.200.169.27:3000/d/oliveyoung-dq-table){{ end }}
-        disableResolveMessage: false
+        # 해소(✅) 알림 끔 — 우리 알림은 시간창/임계 기반이라 "해소"가 진짜 복구가 아님
+        # (예: DAG실패는 10분 창 벗어나면 자동 해소, DAG는 여전히 고장). 오해 방지로 firing만 보냄.
+        disableResolveMessage: true
