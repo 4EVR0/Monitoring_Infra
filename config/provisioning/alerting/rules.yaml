@@ -8,6 +8,11 @@
 #
 # pipeline 라벨(크롤링/전처리/파이프라인)로 Discord 메시지 제목을 라우팅한다.
 # ⚠️ Infinity 알림 룰은 반드시 parser: backend. 첫 로딩 후 UI에서 1회 검증 권장.
+#
+# [오탐 방지 정책] 서버 재기동/스크랩 공백에 "데이터 없음/조회 실패"가 알림으로 새지 않게:
+#   noDataState: OK   — 데이터 없음 = 실패 없음/미실행 = 정상 (실제 위반은 값이 잡혀서 발화)
+#   execErrState: OK  — 조회 실패(dq_api 콜드스타트 등)는 알림 대상 아님 (dq_api는 캐시+헬스체크로 자가복구)
+#   예외: 스케줄러 다운만 noDataState: Alerting (하트비트 시리즈 소멸=다운이 곧 탐지 신호)
 apiVersion: 1
 
 groups:
@@ -21,9 +26,9 @@ groups:
       - uid: alert-dag-failed
         title: DAG 실패
         condition: C
-        for: 0m
-        noDataState: NoData
-        execErrState: Error
+        for: 2m           # 재기동 직후 카운터 리셋/스크랩 아티팩트를 걸러내도록 잠깐 지속 요구
+        noDataState: OK
+        execErrState: OK
         labels:
           severity: critical
           pipeline: 파이프라인
@@ -63,7 +68,7 @@ groups:
         condition: C
         for: 5m           # 스크랩 일시 누락에 안 떨리도록 지속 조건
         noDataState: Alerting   # heartbeat 시리즈 자체가 사라져도 = 다운
-        execErrState: Error
+        execErrState: OK
         labels:
           severity: critical
           pipeline: 파이프라인
@@ -109,8 +114,8 @@ groups:
         title: crawl 신선도
         condition: C
         for: 0m           # age>96h는 이미 오래 지속된 상태
-        noDataState: NoData
-        execErrState: Error
+        noDataState: OK
+        execErrState: OK
         labels:
           severity: warning
           pipeline: 크롤링
@@ -149,8 +154,8 @@ groups:
         title: 전처리 지연
         condition: C
         for: 0m
-        noDataState: NoData    # silver 역대 미실행이면 lag=NULL → 미알림 (#2가 커버)
-        execErrState: Error
+        noDataState: OK    # silver 역대 미실행이면 lag=NULL → 미알림 (#2가 커버)
+        execErrState: OK
         labels:
           severity: warning
           pipeline: 전처리
@@ -189,8 +194,8 @@ groups:
         title: 데이터 품질 급락(match_rate)
         condition: C
         for: 0m           # 10분 간격 평가라 1회 급락도 유의미
-        noDataState: NoData
-        execErrState: Error
+        noDataState: OK
+        execErrState: OK
         labels:
           severity: warning
           pipeline: 전처리
@@ -229,8 +234,8 @@ groups:
         title: 빈 카테고리
         condition: C
         for: 0m
-        noDataState: NoData
-        execErrState: Error
+        noDataState: OK
+        execErrState: OK
         labels:
           severity: warning
           pipeline: 크롤링
@@ -269,8 +274,8 @@ groups:
         title: 수집량 급감
         condition: C
         for: 0m
-        noDataState: NoData
-        execErrState: Error
+        noDataState: OK
+        execErrState: OK
         labels:
           severity: warning
           pipeline: 크롤링
@@ -309,8 +314,8 @@ groups:
         title: 전처리 오류율 상승
         condition: C
         for: 0m
-        noDataState: NoData
-        execErrState: Error
+        noDataState: OK
+        execErrState: OK
         labels:
           severity: warning
           pipeline: 전처리
