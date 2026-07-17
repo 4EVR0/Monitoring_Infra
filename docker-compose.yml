@@ -51,9 +51,10 @@ services:
     labels:
       - autoheal=true                          # autoheal이 unhealthy 감지 시 이 컨테이너 재시작
     healthcheck:
-      # /health가 아닌 S3를 실제로 타는 엔드포인트로 검사해야 TLS 상태 부패를 잡음.
+      # /health가 캐시를 무시하고 실제 S3 스캔을 하도록 바뀜(force) → TLS 상태 부패를 여전히 잡음.
+      # 일반 트래픽은 dq_api 캐시로 견디고, 이 헬스 경로만 실제 S3를 타서 장애 시 재시작을 유도.
       # 장기 구동 시 pyarrow/aws-sdk TLS 컨텍스트가 깨져 S3 접근이 curlCode77로 실패 → 재시작만이 해결.
-      test: ["CMD", "python3", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/dq/rows?limit=1', timeout=10).status==200 else 1)"]
+      test: ["CMD", "python3", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=10).status==200 else 1)"]
       interval: 60s
       timeout: 15s
       retries: 3

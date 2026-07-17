@@ -8,6 +8,7 @@ policies:
     group_by:
       - grafana_folder
       - alertname
+      - dag_id                 # DAG별로 그룹 분리 → 제목이 실패한 DAG를 반영(INCI/올리브영), 요약 중복 방지
     group_wait: 30s            # 최초 알림 전 같은 그룹 버퍼링 (짧게)
     group_interval: 5m         # 그룹에 새 알림 추가 시 재전송 간격
     repeat_interval: 4h        # 계속 firing이면 재알림 주기 (스팸 방지로 넉넉히)
