@@ -348,3 +348,161 @@ groups:
               expression: B
               conditions:
                 - evaluator: { type: gt, params: [0.7] }
+
+  # ── node-exporter 소스: 시스템 리소스 알림 (1분 간격, 해소 O) ─────────────
+  # airflow 호스트(EC2/홈서버)의 디스크·메모리·노드 생존. Alloy가 remote_write하는
+  # node_* / up 메트릭 사용(host 라벨로 서버 구분 → 알림에 어느 서버인지 표시).
+  # board=system 라벨로 discord-system 연결처(해소 O)로 라우팅된다.
+  - orgId: 1
+    name: system-resource
+    folder: 4evr0-alerts
+    interval: 1m
+    rules:
+      # S1 디스크 부족 경고 — root 사용률 85% 초과 (다운 유발 전 여유 있게)
+      - uid: alert-disk-high
+        title: 디스크 부족
+        condition: C
+        for: 10m
+        noDataState: OK
+        execErrState: OK
+        labels:
+          severity: warning
+          board: system
+          component: 디스크
+        annotations:
+          summary: '{{ $labels.host }} 루트 디스크 사용률 {{ printf "%.1f" $values.B.Value }}% (임계 85%)'
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: cfltz3i4tlfr4e
+            model:
+              refId: A
+              editorMode: code
+              expr: '100 - (node_filesystem_avail_bytes{job="airflow-node",mountpoint="/"} / node_filesystem_size_bytes{job="airflow-node",mountpoint="/"} * 100)'
+              instant: true
+              range: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, reducer: last, expression: A }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [85] }
+
+      # S2 디스크 위험 — root 사용률 93% 초과 (다운 직전 마지막 경고)
+      - uid: alert-disk-critical
+        title: 디스크 위험
+        condition: C
+        for: 5m
+        noDataState: OK
+        execErrState: OK
+        labels:
+          severity: critical
+          board: system
+          component: 디스크
+        annotations:
+          summary: '{{ $labels.host }} 루트 디스크 사용률 {{ printf "%.1f" $values.B.Value }}% — 위험 (임계 93%)'
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: cfltz3i4tlfr4e
+            model:
+              refId: A
+              editorMode: code
+              expr: '100 - (node_filesystem_avail_bytes{job="airflow-node",mountpoint="/"} / node_filesystem_size_bytes{job="airflow-node",mountpoint="/"} * 100)'
+              instant: true
+              range: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, reducer: last, expression: A }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [93] }
+
+      # S3 메모리 부족 — 사용률 90% 초과 (OOM 위험)
+      - uid: alert-mem-high
+        title: 메모리 부족
+        condition: C
+        for: 10m
+        noDataState: OK
+        execErrState: OK
+        labels:
+          severity: warning
+          board: system
+          component: 메모리
+        annotations:
+          summary: '{{ $labels.host }} 메모리 사용률 {{ printf "%.1f" $values.B.Value }}% (임계 90%)'
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: cfltz3i4tlfr4e
+            model:
+              refId: A
+              editorMode: code
+              expr: '(1 - node_memory_MemAvailable_bytes{job="airflow-node"} / node_memory_MemTotal_bytes{job="airflow-node"}) * 100'
+              instant: true
+              range: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, reducer: last, expression: A }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [90] }
+
+      # S4 노드 메트릭 끊김 — 15분 전엔 있던 호스트가 지금 없음 (호스트별, 방법 C)
+      # up{job="airflow-node"}는 Alloy 스크레이프가 생성 → host 라벨과 함께 remote_write됨.
+      - uid: alert-node-absent
+        title: 노드 메트릭 끊김
+        condition: C
+        for: 0m
+        noDataState: OK        # 사라진 호스트 없음 = unless 결과 없음 = 정상
+        execErrState: OK
+        labels:
+          severity: warning
+          board: system
+          component: 노드
+        annotations:
+          summary: '{{ $labels.host }} 노드 메트릭이 끊겼습니다 — 15분 전 대비 미수신(호스트 다운 의심).'
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: cfltz3i4tlfr4e
+            model:
+              refId: A
+              editorMode: code
+              expr: 'count by(host) (up{job="airflow-node"} offset 15m) unless count by(host) (up{job="airflow-node"})'
+              instant: true
+              range: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, reducer: last, expression: A }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [0] }

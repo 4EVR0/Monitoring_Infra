@@ -12,3 +12,13 @@ policies:
     group_wait: 30s            # 최초 알림 전 같은 그룹 버퍼링 (짧게)
     group_interval: 5m         # 그룹에 새 알림 추가 시 재전송 간격
     repeat_interval: 4h        # 계속 firing이면 재알림 주기 (스팸 방지로 넉넉히)
+    routes:
+      # 시스템 메트릭 알림(board=system)은 해소(✅) 켠 discord-system으로 라우팅.
+      # 매칭되면 여기서 멈춤(기본 continue=false) → 파이프라인 연결처로 중복 안 감.
+      - receiver: discord-system
+        object_matchers:
+          - ['board', '=', 'system']
+        group_by: [alertname, host]   # 호스트별로 분리 → 어느 서버인지 구분
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 4h
