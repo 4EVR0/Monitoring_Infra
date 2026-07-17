@@ -22,3 +22,21 @@ contactPoints:
         # 해소(✅) 알림 끔 — 우리 알림은 시간창/임계 기반이라 "해소"가 진짜 복구가 아님
         # (예: DAG실패는 10분 창 벗어나면 자동 해소, DAG는 여전히 고장). 오해 방지로 firing만 보냄.
         disableResolveMessage: true
+
+  # ── 시스템 메트릭용 연결처 (해소 알림 켬) ──────────────────────────────────
+  # board=system 알림이 이리로 라우팅(notification-policy). 같은 웹훅=같은 채널이지만
+  # 시스템은 임계 넘음→내려감이 진짜 복구라 해소(✅)를 보낸다. 제목은 인프라용([host·component]).
+  - orgId: 1
+    name: discord-system
+    receivers:
+      - uid: discord-system-webhook
+        type: discord
+        settings:
+          url: ${DISCORD_ALERT_WEBHOOK_URL}
+          title: ' '
+          message: |
+            {{ if eq .Status "resolved" }}✅{{ else if eq .CommonLabels.severity "critical" }}🚨{{ else }}⚠️{{ end }} **[{{ .CommonLabels.host }} · {{ .CommonLabels.component }}] {{ .CommonLabels.alertname }}**{{ if eq .Status "resolved" }} 정상화{{ end }}
+            ━━━━━━━━━━━━━━━━━━━━
+            {{ .CommonAnnotations.summary }}
+            🔗 [대시보드](http://43.200.169.27:3000/d/airflow-monitoring)
+        disableResolveMessage: false
