@@ -13,6 +13,8 @@ Grafana Infinity 데이터소스가 바로 쓰는 JSON을 반환한다.
 """
 
 import os
+import threading
+import time
 from functools import lru_cache
 
 import duckdb
@@ -21,6 +23,8 @@ from pyiceberg.catalog import load_catalog
 
 DQ_METRICS_TABLE = os.environ.get("DQ_METRICS_TABLE", "oliveyoung_db.dq_metrics")
 AWS_REGION = os.environ.get("AWS_REGION", "ap-northeast-2")
+# dq_metrics는 배치마다(며칠~월 단위)만 바뀌므로 스캔 결과를 짧게 캐시한다.
+DQ_CACHE_TTL = float(os.environ.get("DQ_CACHE_TTL", "60"))  # 초
 
 # boto3(pyiceberg의 Glue 클라이언트 포함)가 리전을 항상 찾도록 보장 — NoRegionError 방지
 os.environ.setdefault("AWS_DEFAULT_REGION", AWS_REGION)
@@ -40,12 +44,36 @@ def _catalog():
     )
 
 
-def _query(sql: str, params: list) -> list[dict]:
-    """dq_metrics 전체를 arrow로 읽어 DuckDB로 질의 → dict 목록 반환.
+_cache: dict = {"arrow": None, "ts": 0.0}
+_cache_lock = threading.Lock()
 
-    (run당 몇 행짜리 초소형 테이블이라 매 요청 full scan해도 무방)
+
+def _load_arrow(force: bool = False):
+    """dq_metrics를 arrow로 로드하되 TTL 캐시로 재사용한다.
+
+    대시보드 1회 로드에 패널 여러 개가 동시에 때려도 스캔은 캐시 주기당 1번만 일어난다
+    (락으로 직렬화해 thundering herd 방지). 스캔 실패 시 직전 캐시로 폴백해
+    S3/TLS 순간 장애에도 패널·알림이 에러 대신 살짝 stale한 값을 받는다.
+    force=True(헬스체크)는 캐시를 무시하고 실제 스캔 → 실패를 전파해 autoheal 재시작을 유도.
     """
-    arrow = _catalog().load_table(DQ_METRICS_TABLE).scan().to_arrow()
+    with _cache_lock:
+        fresh = _cache["arrow"] is not None and (time.monotonic() - _cache["ts"]) < DQ_CACHE_TTL
+        if fresh and not force:
+            return _cache["arrow"]
+        try:
+            arrow = _catalog().load_table(DQ_METRICS_TABLE).scan().to_arrow()
+            _cache["arrow"] = arrow
+            _cache["ts"] = time.monotonic()
+            return arrow
+        except Exception:
+            if not force and _cache["arrow"] is not None:
+                return _cache["arrow"]  # 일반 트래픽은 직전 캐시로 폴백(에러 안 냄)
+            raise                        # 헬스체크(force)는 실패 전파 → autoheal
+
+
+def _query(sql: str, params: list) -> list[dict]:
+    """캐시된 dq_metrics arrow를 DuckDB로 질의 → dict 목록 반환."""
+    arrow = _load_arrow()
     con = duckdb.connect()
     try:
         con.register("dq", arrow)
@@ -58,6 +86,12 @@ def _query(sql: str, params: list) -> list[dict]:
 
 @app.get("/health")
 def health():
+    # 캐시 무시하고 실제 S3 스캔 → TLS 부패 등 진짜 장애를 잡아 autoheal 재시작을 유도.
+    # 일반 트래픽은 캐시로 견디되, 이 경로만 실패 시 500 → 컨테이너 재시작.
+    try:
+        _load_arrow(force=True)
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"iceberg scan failed: {e}")
     return {"status": "ok", "table": DQ_METRICS_TABLE}
 
 
