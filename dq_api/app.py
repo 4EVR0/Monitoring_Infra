@@ -99,17 +99,27 @@ def health():
 def latest(
     stage: str = Query(..., description="crawl | bronze_to_silver | silver_to_gold"),
     metric: str = Query(..., description="지표명 (match_rate 등)"),
+    from_ms: int | None = Query(None, alias="from", description="Grafana ${__from} (epoch ms)"),
+    to_ms: int | None = Query(None, alias="to", description="Grafana ${__to} (epoch ms)"),
 ):
-    """해당 (stage, metric)의 최신 run 값 1건. 점수판 stat 타일용."""
+    """해당 (stage, metric)의 최신 run 값 1건. 점수판 stat 타일용.
+
+    from/to(Grafana 시간범위, epoch ms)가 오면 그 구간 안의 최신 run을 고른다 →
+    점수판도 시리즈/표와 똑같이 시간 선택기를 따른다(7월 선택 시 9월 최신값이 뜨던 괴리 제거).
+    미지정 시 과거 동작대로 역대 최신 run(직접 호출·하위호환용). 구간 판정은
+    series/rows와 동일하게 epoch_ms(created_at) 정수 비교.
+    """
     rows = _query(
         """
         SELECT metric_value, batch_date, run_id, target_table, created_at
         FROM dq
         WHERE stage = ? AND metric_name = ?
+          AND (? IS NULL OR epoch_ms(created_at) >= ?)
+          AND (? IS NULL OR epoch_ms(created_at) <= ?)
         ORDER BY created_at DESC
         LIMIT 1
         """,
-        [stage, metric],
+        [stage, metric, from_ms, from_ms, to_ms, to_ms],
     )
     if not rows:
         raise HTTPException(status_code=404, detail="해당 지표 데이터 없음")

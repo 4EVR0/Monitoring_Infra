@@ -98,7 +98,7 @@
           "type": "json",
           "source": "url",
           "format": "table",
-          "url": "${dq_api_url}/dq/latest?stage=silver_to_gold&metric=match_rate",
+          "url": "${dq_api_url}/dq/latest?stage=silver_to_gold&metric=match_rate&from=${__from}&to=${__to}",
           "url_options": {
             "method": "GET"
           },
@@ -190,7 +190,7 @@
           "type": "json",
           "source": "url",
           "format": "table",
-          "url": "${dq_api_url}/dq/latest?stage=bronze_to_silver&metric=error_rate",
+          "url": "${dq_api_url}/dq/latest?stage=bronze_to_silver&metric=error_rate&from=${__from}&to=${__to}",
           "url_options": {
             "method": "GET"
           },
@@ -277,7 +277,7 @@
           "type": "json",
           "source": "url",
           "format": "table",
-          "url": "${dq_api_url}/dq/latest?stage=crawl&metric=categories_failed",
+          "url": "${dq_api_url}/dq/latest?stage=crawl&metric=categories_failed&from=${__from}&to=${__to}",
           "url_options": {
             "method": "GET"
           },
@@ -364,7 +364,7 @@
           "type": "json",
           "source": "url",
           "format": "table",
-          "url": "${dq_api_url}/dq/latest?stage=crawl&metric=categories_zero",
+          "url": "${dq_api_url}/dq/latest?stage=crawl&metric=categories_zero&from=${__from}&to=${__to}",
           "url_options": {
             "method": "GET"
           },
