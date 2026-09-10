@@ -120,9 +120,27 @@ def latest(
 def series(
     stage: str = Query(...),
     metric: str = Query(...),
-    days: int = Query(29, ge=1, le=365, description="조회 기간(일)"),
+    days: int = Query(29, ge=1, le=365, description="조회 기간(일). from/to 미지정 시 폴백."),
+    from_ms: int | None = Query(None, alias="from", description="Grafana ${__from} (epoch ms)"),
+    to_ms: int | None = Query(None, alias="to", description="Grafana ${__to} (epoch ms)"),
 ):
-    """(stage, metric)의 최근 N일 시계열. 추세 timeseries 패널용."""
+    """(stage, metric)의 시계열. 추세 timeseries 패널용.
+
+    from/to(Grafana 시간범위, epoch ms)가 오면 그 구간을 조회 → 대시보드 시간 선택기가
+    실제로 먹는다. 둘 다 없으면 과거 동작대로 now 기준 최근 N일로 폴백(직접 호출·하위호환용).
+    구간 판정은 epoch_ms(created_at)로 정수 비교 — timestamp/timestamptz 암묵 캐스팅 이슈 회피.
+    """
+    if from_ms is not None and to_ms is not None:
+        return _query(
+            """
+            SELECT created_at, metric_value, batch_date, run_id
+            FROM dq
+            WHERE stage = ? AND metric_name = ?
+              AND epoch_ms(created_at) BETWEEN ? AND ?
+            ORDER BY created_at
+            """,
+            [stage, metric, from_ms, to_ms],
+        )
     # days는 검증된 정수(1~365)라 인터벌에 직접 삽입 — 파라미터 바인딩 인터벌 이슈 회피
     return _query(
         f"""
@@ -190,16 +208,24 @@ def rows(
     stage: str | None = Query(None),
     metric: str | None = Query(None),
     limit: int = Query(200, ge=1, le=2000),
+    from_ms: int | None = Query(None, alias="from", description="Grafana ${__from} (epoch ms)"),
+    to_ms: int | None = Query(None, alias="to", description="Grafana ${__to} (epoch ms)"),
 ):
-    """최근 원시 행. 표/드릴다운용. stage·metric은 선택 필터."""
+    """최근 원시 행. 표/드릴다운용. stage·metric·기간(from/to)은 모두 선택 필터.
+
+    from/to(epoch ms)를 주면 해당 구간만 — 표 패널도 대시보드 시간 선택기를 따른다.
+    미지정 필터는 `? IS NULL OR ...` 가드로 통과(stage/metric과 동일 패턴).
+    """
     return _query(
         """
         SELECT batch_date, run_id, stage, metric_name, metric_value, target_table, created_at
         FROM dq
         WHERE (? IS NULL OR stage = ?)
           AND (? IS NULL OR metric_name = ?)
+          AND (? IS NULL OR epoch_ms(created_at) >= ?)
+          AND (? IS NULL OR epoch_ms(created_at) <= ?)
         ORDER BY created_at DESC
         LIMIT ?
         """,
-        [stage, stage, metric, metric, limit],
+        [stage, stage, metric, metric, from_ms, from_ms, to_ms, to_ms, limit],
     )

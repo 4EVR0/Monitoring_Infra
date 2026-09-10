@@ -476,7 +476,7 @@
           "type": "json",
           "source": "url",
           "format": "table",
-          "url": "${dq_api_url}/dq/series?stage=silver_to_gold&metric=match_rate&days=29",
+          "url": "${dq_api_url}/dq/series?stage=silver_to_gold&metric=match_rate&from=${__from}&to=${__to}",
           "url_options": {
             "method": "GET"
           },
@@ -565,7 +565,7 @@
           "type": "json",
           "source": "url",
           "format": "table",
-          "url": "${dq_api_url}/dq/series?stage=silver_to_gold&metric=ingredients_unique&days=29",
+          "url": "${dq_api_url}/dq/series?stage=silver_to_gold&metric=ingredients_unique&from=${__from}&to=${__to}",
           "url_options": {
             "method": "GET"
           },
@@ -597,7 +597,7 @@
           "type": "json",
           "source": "url",
           "format": "table",
-          "url": "${dq_api_url}/dq/series?stage=silver_to_gold&metric=ingredients_matched&days=29",
+          "url": "${dq_api_url}/dq/series?stage=silver_to_gold&metric=ingredients_matched&from=${__from}&to=${__to}",
           "url_options": {
             "method": "GET"
           },
@@ -629,7 +629,7 @@
           "type": "json",
           "source": "url",
           "format": "table",
-          "url": "${dq_api_url}/dq/series?stage=silver_to_gold&metric=ingredients_unmatched&days=29",
+          "url": "${dq_api_url}/dq/series?stage=silver_to_gold&metric=ingredients_unmatched&from=${__from}&to=${__to}",
           "url_options": {
             "method": "GET"
           },
@@ -730,7 +730,7 @@
           "type": "json",
           "source": "url",
           "format": "table",
-          "url": "${dq_api_url}/dq/series?stage=bronze_to_silver&metric=bronze_loaded&days=29",
+          "url": "${dq_api_url}/dq/series?stage=bronze_to_silver&metric=bronze_loaded&from=${__from}&to=${__to}",
           "url_options": {
             "method": "GET"
           },
@@ -762,7 +762,7 @@
           "type": "json",
           "source": "url",
           "format": "table",
-          "url": "${dq_api_url}/dq/series?stage=bronze_to_silver&metric=silver_ok&days=29",
+          "url": "${dq_api_url}/dq/series?stage=bronze_to_silver&metric=silver_ok&from=${__from}&to=${__to}",
           "url_options": {
             "method": "GET"
           },
@@ -794,7 +794,7 @@
           "type": "json",
           "source": "url",
           "format": "table",
-          "url": "${dq_api_url}/dq/series?stage=bronze_to_silver&metric=silver_error&days=29",
+          "url": "${dq_api_url}/dq/series?stage=bronze_to_silver&metric=silver_error&from=${__from}&to=${__to}",
           "url_options": {
             "method": "GET"
           },
@@ -904,7 +904,7 @@
           "type": "json",
           "source": "url",
           "format": "table",
-          "url": "${dq_api_url}/dq/series?stage=bronze_to_silver&metric=error_rate&days=29",
+          "url": "${dq_api_url}/dq/series?stage=bronze_to_silver&metric=error_rate&from=${__from}&to=${__to}",
           "url_options": {
             "method": "GET"
           },
@@ -1005,7 +1005,7 @@
           "type": "json",
           "source": "url",
           "format": "table",
-          "url": "${dq_api_url}/dq/series?stage=crawl&metric=products_total&days=29",
+          "url": "${dq_api_url}/dq/series?stage=crawl&metric=products_total&from=${__from}&to=${__to}",
           "url_options": {
             "method": "GET"
           },
@@ -1110,7 +1110,7 @@
           "type": "json",
           "source": "url",
           "format": "table",
-          "url": "${dq_api_url}/dq/series?stage=crawl&metric=categories_failed&days=29",
+          "url": "${dq_api_url}/dq/series?stage=crawl&metric=categories_failed&from=${__from}&to=${__to}",
           "url_options": {
             "method": "GET"
           },
@@ -1142,7 +1142,7 @@
           "type": "json",
           "source": "url",
           "format": "table",
-          "url": "${dq_api_url}/dq/series?stage=crawl&metric=categories_zero&days=29",
+          "url": "${dq_api_url}/dq/series?stage=crawl&metric=categories_zero&from=${__from}&to=${__to}",
           "url_options": {
             "method": "GET"
           },
@@ -1221,7 +1221,7 @@
           "type": "json",
           "source": "url",
           "format": "table",
-          "url": "${dq_api_url}/dq/rows?limit=200",
+          "url": "${dq_api_url}/dq/rows?limit=200&from=${__from}&to=${__to}",
           "url_options": {
             "method": "GET"
           },
