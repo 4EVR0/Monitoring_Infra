@@ -239,3 +239,99 @@ def rows(
         """,
         [stage, stage, metric, metric, from_ms, from_ms, to_ms, to_ms, limit],
     )
+
+
+@app.get("/dq/error-types")
+def error_types(
+    stage: str = Query("bronze_to_silver", description="전처리 단계"),
+    from_ms: int | None = Query(None, alias="from", description="Grafana ${__from} (epoch ms)"),
+    to_ms: int | None = Query(None, alias="to", description="Grafana ${__to} (epoch ms)"),
+):
+    """최신 실행의 error_type별 레코드 수 + 집계 완전성. 유형별 막대 패널용.
+
+    - 최신 run = silver_error(마커, 0건도 매 배치 기록)의 created_at 최댓값 실행.
+      from/to면 그 구간 내 최신. → batch_date 최대가 아니라 created_at 기준(재실행·백필 대응).
+    - 요약(silver_error)과 유형별(err_*)은 별도 append라 부분 성공 가능 →
+      유형 행 없다고 0/이전 배치값으로 보이면 안 됨. 화면은 status != ok면 부분 막대를 정상처럼 X.
+      status: ok(0건 포함) | no_breakdown(err_* 없음: 구버전/저장실패) | incomplete(합 불일치) |
+              no_data_in_range | no_data.
+    - rows: status=ok일 때만 [{error_type,count,class}] (부분집계=[]). class=rejected|residual|unclassified|other.
+      원본 types는 진단용으로 항상 포함.
+    """
+    marker = _query(
+        """
+        SELECT run_id, batch_date, metric_value AS silver_error, created_at
+        FROM dq
+        WHERE stage = ? AND metric_name = 'silver_error'
+          AND (? IS NULL OR epoch_ms(created_at) >= ?)
+          AND (? IS NULL OR epoch_ms(created_at) <= ?)
+        ORDER BY created_at DESC
+        LIMIT 1
+        """,
+        [stage, from_ms, from_ms, to_ms, to_ms],
+    )
+    if not marker:
+        # 기간 필터가 있으면 그 구간에 없음, 없으면 데이터 자체가 없음 — 구분해 명명.
+        status = "no_data_in_range" if (from_ms is not None or to_ms is not None) else "no_data"
+        return {"status": status, "types": {}, "rows": [], "silver_error": None}
+
+    m = marker[0]
+    run_id = m["run_id"]
+    batch_date = m["batch_date"]
+    silver_error = None if m["silver_error"] is None else int(m["silver_error"])
+
+    # run_id는 초단위(build_run_id)라 같은 초 동시 실행이면 충돌 가능 → batch_date까지 조건에
+    # 넣어 귀속 강화(백필 대비). 장기적으로는 진짜 고유 실행 ID가 안전 — 별건.
+    rows_ = _query(
+        """
+        SELECT metric_name, metric_value
+        FROM dq
+        WHERE run_id = ? AND batch_date = ? AND stage = ? AND starts_with(metric_name, 'err_')
+        """,
+        [run_id, batch_date, stage],
+    )
+    types = {r["metric_name"][4:]: int(r["metric_value"]) for r in rows_}  # 'err_' 제거
+    total = sum(types.values())
+
+    # 완전성 판정:
+    #   유형 없음 + silver_error==0 → ok (진짜 0건)
+    #   유형 없음 + silver_error>0  → no_breakdown (구버전 실행 or 유형별 저장 실패 — 데이터만으론 구분 불가)
+    #   유형 있음 + 합==silver_error → ok
+    #   그 외(합 불일치)            → incomplete (부분 저장)
+    if not types:
+        status = "ok" if silver_error == 0 else "no_breakdown"
+    elif silver_error is not None and total == silver_error:
+        status = "ok"
+    else:
+        status = "incomplete"
+
+    def _cls(t: str) -> str:
+        if t == "UNMAPPED_RESIDUAL":
+            return "residual"        # 잔여 성분 발생; Silver 적재 여부는 섞임(매칭 있으면 적재+경고, 없으면 미적재)
+        if t == "UNCLASSIFIED":
+            return "unclassified"
+        if t.endswith("_REJECTED"):
+            return "rejected"        # 실제 제외
+        return "other"               # 미래 신규 유형(경고 등) 대비 — 모두 rejected로 오분류 금지
+
+    # Grafana Infinity 가로막대용 rows 배열(변환 불필요). 건수 내림차순.
+    # ⚠️ status != ok면 부분 집계라 패널용 rows=[](정상 그래프처럼 안 보이게). 원본 types는 진단용 유지.
+    rows = (
+        [
+            {"error_type": t, "count": c, "class": _cls(t)}
+            for t, c in sorted(types.items(), key=lambda x: x[1], reverse=True)
+        ]
+        if status == "ok"
+        else []
+    )
+
+    return {
+        "status": status,
+        "run_id": run_id,
+        "batch_date": batch_date,
+        "created_at": m["created_at"],
+        "silver_error": silver_error,   # 적재 전 '계산된' 에러 레코드 수(적재 확인 아님)
+        "types_total": total,
+        "types": types,
+        "rows": rows,
+    }
