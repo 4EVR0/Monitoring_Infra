@@ -255,7 +255,8 @@ def error_types(
       유형 행 없다고 0/이전 배치값으로 보이면 안 됨. 화면은 status != ok면 부분 막대를 정상처럼 X.
       status: ok(0건 포함) | no_breakdown(err_* 없음: 구버전/저장실패) | incomplete(합 불일치) |
               no_data_in_range | no_data.
-    - rows: [{error_type, count, class}] (Infinity 가로막대용). class=rejected|residual|unclassified.
+    - rows: status=ok일 때만 [{error_type,count,class}] (부분집계=[]). class=rejected|residual|unclassified|other.
+      원본 types는 진단용으로 항상 포함.
     """
     marker = _query(
         """
@@ -306,16 +307,23 @@ def error_types(
 
     def _cls(t: str) -> str:
         if t == "UNMAPPED_RESIDUAL":
-            return "residual"       # Silver 적재됨 + 잔여 성분 경고
+            return "residual"        # 잔여 성분 발생; Silver 적재 여부는 섞임(매칭 있으면 적재+경고, 없으면 미적재)
         if t == "UNCLASSIFIED":
             return "unclassified"
-        return "rejected"           # 실제 제외
+        if t.endswith("_REJECTED"):
+            return "rejected"        # 실제 제외
+        return "other"               # 미래 신규 유형(경고 등) 대비 — 모두 rejected로 오분류 금지
 
     # Grafana Infinity 가로막대용 rows 배열(변환 불필요). 건수 내림차순.
-    rows = [
-        {"error_type": t, "count": c, "class": _cls(t)}
-        for t, c in sorted(types.items(), key=lambda x: x[1], reverse=True)
-    ]
+    # ⚠️ status != ok면 부분 집계라 패널용 rows=[](정상 그래프처럼 안 보이게). 원본 types는 진단용 유지.
+    rows = (
+        [
+            {"error_type": t, "count": c, "class": _cls(t)}
+            for t, c in sorted(types.items(), key=lambda x: x[1], reverse=True)
+        ]
+        if status == "ok"
+        else []
+    )
 
     return {
         "status": status,
