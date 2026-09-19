@@ -252,8 +252,10 @@ def error_types(
     - 최신 run = silver_error(마커, 0건도 매 배치 기록)의 created_at 최댓값 실행.
       from/to면 그 구간 내 최신. → batch_date 최대가 아니라 created_at 기준(재실행·백필 대응).
     - 요약(silver_error)과 유형별(err_*)은 별도 append라 부분 성공 가능 →
-      sum(err_*) != silver_error면 status='incomplete'. 유형 행 없다고 0/이전 배치값으로 보이면 안 됨.
-      status: ok | incomplete | no_data_in_range.
+      유형 행 없다고 0/이전 배치값으로 보이면 안 됨. 화면은 status != ok면 부분 막대를 정상처럼 X.
+      status: ok(0건 포함) | no_breakdown(err_* 없음: 구버전/저장실패) | incomplete(합 불일치) |
+              no_data_in_range | no_data.
+    - rows: [{error_type, count, class}] (Infinity 가로막대용). class=rejected|residual|unclassified.
     """
     marker = _query(
         """
@@ -268,37 +270,60 @@ def error_types(
         [stage, from_ms, from_ms, to_ms, to_ms],
     )
     if not marker:
-        return {"status": "no_data_in_range", "types": {}, "silver_error": None}
+        # 기간 필터가 있으면 그 구간에 없음, 없으면 데이터 자체가 없음 — 구분해 명명.
+        status = "no_data_in_range" if (from_ms is not None or to_ms is not None) else "no_data"
+        return {"status": status, "types": {}, "rows": [], "silver_error": None}
 
     m = marker[0]
     run_id = m["run_id"]
+    batch_date = m["batch_date"]
     silver_error = None if m["silver_error"] is None else int(m["silver_error"])
 
+    # run_id는 초단위(build_run_id)라 같은 초 동시 실행이면 충돌 가능 → batch_date까지 조건에
+    # 넣어 귀속 강화(백필 대비). 장기적으로는 진짜 고유 실행 ID가 안전 — 별건.
     rows_ = _query(
         """
         SELECT metric_name, metric_value
         FROM dq
-        WHERE run_id = ? AND stage = ? AND starts_with(metric_name, 'err_')
+        WHERE run_id = ? AND batch_date = ? AND stage = ? AND starts_with(metric_name, 'err_')
         """,
-        [run_id, stage],
+        [run_id, batch_date, stage],
     )
     types = {r["metric_name"][4:]: int(r["metric_value"]) for r in rows_}  # 'err_' 제거
     total = sum(types.values())
 
-    # 완전성: 유형 없음+0건=ok / 합==silver_error=ok / 그 외=incomplete(부분 저장·불일치)
+    # 완전성 판정:
+    #   유형 없음 + silver_error==0 → ok (진짜 0건)
+    #   유형 없음 + silver_error>0  → no_breakdown (구버전 실행 or 유형별 저장 실패 — 데이터만으론 구분 불가)
+    #   유형 있음 + 합==silver_error → ok
+    #   그 외(합 불일치)            → incomplete (부분 저장)
     if not types:
-        status = "ok" if silver_error == 0 else "incomplete"
+        status = "ok" if silver_error == 0 else "no_breakdown"
     elif silver_error is not None and total == silver_error:
         status = "ok"
     else:
         status = "incomplete"
 
+    def _cls(t: str) -> str:
+        if t == "UNMAPPED_RESIDUAL":
+            return "residual"       # Silver 적재됨 + 잔여 성분 경고
+        if t == "UNCLASSIFIED":
+            return "unclassified"
+        return "rejected"           # 실제 제외
+
+    # Grafana Infinity 가로막대용 rows 배열(변환 불필요). 건수 내림차순.
+    rows = [
+        {"error_type": t, "count": c, "class": _cls(t)}
+        for t, c in sorted(types.items(), key=lambda x: x[1], reverse=True)
+    ]
+
     return {
         "status": status,
         "run_id": run_id,
-        "batch_date": m["batch_date"],
+        "batch_date": batch_date,
         "created_at": m["created_at"],
-        "silver_error": silver_error,
+        "silver_error": silver_error,   # 적재 전 '계산된' 에러 레코드 수(적재 확인 아님)
         "types_total": total,
         "types": types,
+        "rows": rows,
     }
