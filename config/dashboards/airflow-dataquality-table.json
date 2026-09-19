@@ -1287,13 +1287,13 @@
       },
       {
         "current": {
-          "text": "http://43.200.169.27:8501",
-          "value": "http://43.200.169.27:8501"
+          "text": "http://15.165.179.181:8501",
+          "value": "http://15.165.179.181:8501"
         },
         "hide": 2,
         "label": "Iceberg UI URL",
         "name": "iceberg_ui_url",
-        "query": "http://43.200.169.27:8501",
+        "query": "http://15.165.179.181:8501",
         "type": "constant"
       },
       {
