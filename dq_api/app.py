@@ -239,3 +239,66 @@ def rows(
         """,
         [stage, stage, metric, metric, from_ms, from_ms, to_ms, to_ms, limit],
     )
+
+
+@app.get("/dq/error-types")
+def error_types(
+    stage: str = Query("bronze_to_silver", description="전처리 단계"),
+    from_ms: int | None = Query(None, alias="from", description="Grafana ${__from} (epoch ms)"),
+    to_ms: int | None = Query(None, alias="to", description="Grafana ${__to} (epoch ms)"),
+):
+    """최신 실행의 error_type별 레코드 수 + 집계 완전성. 유형별 막대 패널용.
+
+    - 최신 run = silver_error(마커, 0건도 매 배치 기록)의 created_at 최댓값 실행.
+      from/to면 그 구간 내 최신. → batch_date 최대가 아니라 created_at 기준(재실행·백필 대응).
+    - 요약(silver_error)과 유형별(err_*)은 별도 append라 부분 성공 가능 →
+      sum(err_*) != silver_error면 status='incomplete'. 유형 행 없다고 0/이전 배치값으로 보이면 안 됨.
+      status: ok | incomplete | no_data_in_range.
+    """
+    marker = _query(
+        """
+        SELECT run_id, batch_date, metric_value AS silver_error, created_at
+        FROM dq
+        WHERE stage = ? AND metric_name = 'silver_error'
+          AND (? IS NULL OR epoch_ms(created_at) >= ?)
+          AND (? IS NULL OR epoch_ms(created_at) <= ?)
+        ORDER BY created_at DESC
+        LIMIT 1
+        """,
+        [stage, from_ms, from_ms, to_ms, to_ms],
+    )
+    if not marker:
+        return {"status": "no_data_in_range", "types": {}, "silver_error": None}
+
+    m = marker[0]
+    run_id = m["run_id"]
+    silver_error = None if m["silver_error"] is None else int(m["silver_error"])
+
+    rows_ = _query(
+        """
+        SELECT metric_name, metric_value
+        FROM dq
+        WHERE run_id = ? AND stage = ? AND starts_with(metric_name, 'err_')
+        """,
+        [run_id, stage],
+    )
+    types = {r["metric_name"][4:]: int(r["metric_value"]) for r in rows_}  # 'err_' 제거
+    total = sum(types.values())
+
+    # 완전성: 유형 없음+0건=ok / 합==silver_error=ok / 그 외=incomplete(부분 저장·불일치)
+    if not types:
+        status = "ok" if silver_error == 0 else "incomplete"
+    elif silver_error is not None and total == silver_error:
+        status = "ok"
+    else:
+        status = "incomplete"
+
+    return {
+        "status": status,
+        "run_id": run_id,
+        "batch_date": m["batch_date"],
+        "created_at": m["created_at"],
+        "silver_error": silver_error,
+        "types_total": total,
+        "types": types,
+    }
