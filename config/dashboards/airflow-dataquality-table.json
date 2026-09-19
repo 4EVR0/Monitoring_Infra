@@ -2,7 +2,7 @@
   "title": "Oliveyoung 데이터 정합성 (테이블 소스)",
   "uid": "oliveyoung-dq-table",
   "schemaVersion": 38,
-  "version": 1,
+  "version": 2,
   "refresh": "5m",
   "time": {
     "from": "now-30d",
@@ -19,7 +19,7 @@
         "y": 0
       },
       "id": 100,
-      "title": "정합성 점수판 (최신 run)",
+      "title": "선택 기간의 최신 DQ 기록 (단계별 실행)",
       "type": "row"
     },
     {
@@ -122,27 +122,15 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "fixed",
+            "fixedColor": "blue"
           },
           "unit": "percentunit",
           "min": 0,
           "max": 1,
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 0.05
-              },
-              {
-                "color": "red",
-                "value": 0.1
-              }
-            ]
+            "steps": [{"color": "blue", "value": null}]
           },
           "links": [
             {
@@ -178,8 +166,8 @@
           "values": false
         }
       },
-      "description": "처리 행 중 에러 비중 = error/(ok+error). 낮을수록 좋음 (초록 ≤0.05 / 노랑 ≤0.1 / 빨강 초과).",
-      "title": "전처리 에러율",
+      "description": "기존 error_rate = 오류 레코드/(정상 출력 행+오류 레코드). Silver에 적재되는 상품의 잔여 성분 경고도 오류에 포함될 수 있어 상품 제외율이나 적재 실패율이 아니다. 분모도 중복될 수 있으므로 임계 판정 대신 추이 참고용으로만 사용한다.",
+      "title": "오류 레코드 비중 (참고)",
       "targets": [
         {
           "datasource": {
@@ -265,8 +253,8 @@
           "values": false
         }
       },
-      "description": "최신 크롤의 이동 실패 카테고리 수. 0이면 정상, 1 이상이면 카테고리 누락(크롤 결함).",
-      "title": "카테고리 실패",
+      "description": "최신 크롤에서 기록된 카테고리 이동 실패 수. 일반 예외·0건·재개 시 건너뛴 카테고리는 포함하지 않으므로 0이 전체 수집 성공을 뜻하지는 않는다.",
+      "title": "카테고리 이동 실패",
       "targets": [
         {
           "datasource": {
@@ -352,7 +340,7 @@
           "values": false
         }
       },
-      "description": "최신 크롤의 0건 카테고리 수. 0이면 정상, 1 이상이면 수집 누락 의심.",
+      "description": "최신 크롤에서 방문 후 상품 0건으로 기록된 카테고리 수. 재개 과정에서 건너뛴 카테고리와는 별개이며, 1 이상이면 원인 확인이 필요하다.",
       "title": "카테고리 0건",
       "targets": [
         {
@@ -664,7 +652,7 @@
         "y": 14
       },
       "id": 4,
-      "title": "전처리 · 적재 보존 (bronze→silver)",
+      "title": "전처리 계산 결과 (bronze→silver)",
       "type": "row"
     },
     {
@@ -718,8 +706,8 @@
           "placement": "bottom"
         }
       },
-      "description": "bronze 로드 → 정상/에러. (dedup으로 정상+에러가 로드와 단순합이 안 맞는 게 정상 — 판단은 에러율로)",
-      "title": "bronze→silver 행 흐름",
+      "description": "입력 행, 정상 출력 행, 오류 레코드의 실행별 계산값. 한 상품의 정상 출력과 잔여 성분 경고가 겹칠 수 있으므로 정상+오류=입력이라는 보존식이 성립하지 않는다. Silver 실제 적재 성공을 증명하는 값도 아니다.",
+      "title": "입력·정제·오류 레코드 (계산값)",
       "targets": [
         {
           "datasource": {
@@ -828,7 +816,8 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "fixed",
+            "fixedColor": "blue"
           },
           "custom": {
             "drawStyle": "line",
@@ -838,7 +827,7 @@
             "spanNulls": true,
             "fillOpacity": 0,
             "thresholdsStyle": {
-              "mode": "line"
+              "mode": "off"
             }
           },
           "unit": "percentunit",
@@ -846,20 +835,7 @@
           "max": 1,
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 0.05
-              },
-              {
-                "color": "red",
-                "value": 0.1
-              }
-            ]
+            "steps": [{"color": "blue", "value": null}]
           },
           "links": [
             {
@@ -892,8 +868,8 @@
           "placement": "bottom"
         }
       },
-      "description": "전처리 에러율 추이 = error/(ok+error). 임계선 위로 올라오면 전처리 품질 저하.",
-      "title": "전처리 에러율 추이 (bronze→silver)",
+      "description": "기존 error_rate의 실행별 추이. 오류에는 정상 적재와 겹치는 잔여 성분 경고가 포함될 수 있다. 상품 실패율이 아니며 아직 운영 임계값을 확정하지 않았다.",
+      "title": "오류 레코드 비중 추이 (참고)",
       "targets": [
         {
           "datasource": {
@@ -932,11 +908,180 @@
     },
     {
       "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 23},
+      "id": 109,
+      "title": "전처리 오류 유형 · 선택 기간의 최신 실행",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "${dq_datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "unit": "short",
+          "min": 0,
+          "custom": {"axisPlacement": "auto", "fillOpacity": 80, "lineWidth": 1}
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "class"},
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {"type": "value", "options": {
+                    "rejected": {"text": "제외", "color": "red"},
+                    "residual": {"text": "잔여 성분", "color": "blue"},
+                    "unclassified": {"text": "미분류", "color": "orange"},
+                    "other": {"text": "기타", "color": "purple"}
+                  }}
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {"h": 8, "w": 17, "x": 0, "y": 24},
+      "id": 105,
+      "options": {
+        "orientation": "horizontal",
+        "xField": "error_type",
+        "colorByField": "class",
+        "showValue": "always",
+        "barWidth": 0.7,
+        "groupWidth": 0.7,
+        "stacking": "none",
+        "tooltip": {"mode": "single"},
+        "legend": {"displayMode": "hidden"}
+      },
+      "description": "선택 기간에 기록된 최신 bronze→silver 실행(created_at 기준)의 오류 레코드 건수. REJECTED는 제외 유형, UNMAPPED_RESIDUAL은 정상 적재와 겹칠 수도 있는 잔여 성분이다. 상품 수가 아니며, 오른쪽 집계 상태가 정상일 때만 막대가 표시된다. 신규 유형은 자동으로 추가된다.",
+      "title": "오류 유형별 레코드 건수",
+      "targets": [
+        {
+          "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "${dq_datasource}"},
+          "refId": "A",
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "${dq_api_url}/dq/error-types?stage=bronze_to_silver&from=${__from}&to=${__to}",
+          "url_options": {"method": "GET"},
+          "root_selector": "rows",
+          "columns": [
+            {"selector": "error_type", "text": "error_type", "type": "string"},
+            {"selector": "count", "text": "count", "type": "number"},
+            {"selector": "class", "text": "class", "type": "string"}
+          ]
+        }
+      ],
+      "type": "barchart"
+    },
+    {
+      "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "${dq_datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {"type": "value", "options": {
+              "ok": {"text": "집계 정상", "color": "green"},
+              "no_breakdown": {"text": "유형별 자료 없음", "color": "yellow"},
+              "incomplete": {"text": "집계 불완전", "color": "red"},
+              "no_data_in_range": {"text": "선택 기간에 실행 없음", "color": "blue"},
+              "no_data": {"text": "관측 기록 없음", "color": "blue"}
+            }}
+          ],
+          "color": {"mode": "thresholds"}
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 3, "w": 7, "x": 17, "y": 24},
+      "id": 106,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "description": "ok=유형 합계가 계산된 silver_error와 일치(0건 포함). no_breakdown=구버전 실행 또는 유형별 저장 실패로 구분 불가. incomplete=합계 불일치. 기간 내 실행 없음·API 조회 실패는 각각 별도로 확인한다.",
+      "title": "유형별 집계 상태",
+      "targets": [
+        {
+          "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "${dq_datasource}"},
+          "refId": "A",
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "${dq_api_url}/dq/error-types?stage=bronze_to_silver&from=${__from}&to=${__to}",
+          "url_options": {"method": "GET"},
+          "root_selector": "",
+          "columns": [{"selector": "status", "text": "status", "type": "string"}]
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "${dq_datasource}"},
+      "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "blue"}}, "overrides": []},
+      "gridPos": {"h": 2, "w": 7, "x": 17, "y": 27},
+      "id": 107,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "description": "선택된 최신 기록의 batch_date. 최신 판단은 batch_date 최대가 아니라 기록 시각 created_at 기준이므로 재실행·백필 시 과거 배치일 수도 있다.",
+      "title": "관측 배치일",
+      "targets": [
+        {
+          "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "${dq_datasource}"},
+          "refId": "A",
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "${dq_api_url}/dq/error-types?stage=bronze_to_silver&from=${__from}&to=${__to}",
+          "url_options": {"method": "GET"},
+          "root_selector": "",
+          "columns": [{"selector": "batch_date", "text": "batch_date", "type": "string"}]
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "${dq_datasource}"},
+      "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "blue"}, "unit": "short", "min": 0}, "overrides": []},
+      "gridPos": {"h": 3, "w": 7, "x": 17, "y": 29},
+      "id": 108,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+      },
+      "description": "silver_error 마커 값: 해당 실행에서 적재 전에 계산한 오류 레코드 수. 실제 Iceberg 적재 성공이나 제외 상품 수가 아니다. 유형별 막대와 합계 비교는 집계 상태에서 판정한다.",
+      "title": "오류 레코드 합계 (계산값)",
+      "targets": [
+        {
+          "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "${dq_datasource}"},
+          "refId": "A",
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "${dq_api_url}/dq/error-types?stage=bronze_to_silver&from=${__from}&to=${__to}",
+          "url_options": {"method": "GET"},
+          "root_selector": "",
+          "columns": [{"selector": "silver_error", "text": "silver_error", "type": "number"}]
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 23
+        "y": 32
       },
       "id": 7,
       "title": "수집 안정성 (crawl)",
@@ -981,7 +1126,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 24
+        "y": 33
       },
       "id": 8,
       "options": {
@@ -1086,7 +1231,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 24
+        "y": 33
       },
       "id": 9,
       "options": {
@@ -1174,7 +1319,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 32
+        "y": 41
       },
       "id": 20,
       "title": "원시 데이터 · 드릴다운 (Iceberg)",
@@ -1197,7 +1342,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 33
+        "y": 42
       },
       "id": 21,
       "options": {
