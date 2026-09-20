@@ -2,7 +2,7 @@
   "title": "Oliveyoung 데이터 정합성 (테이블 소스)",
   "uid": "oliveyoung-dq-table",
   "schemaVersion": 38,
-  "version": 3,
+  "version": 4,
   "refresh": "5m",
   "time": {
     "from": "now-30d",
@@ -183,7 +183,7 @@
           "type": "json",
           "source": "url",
           "format": "table",
-          "url": "${dq_api_url}/dq/latest?stage=bronze_to_silver&metric=error_rate&from=${__from}&to=${__to}",
+          "url": "${dq_api_url}/dq/latest?stage=${dq_stage}&metric=error_rate&from=${__from}&to=${__to}",
           "url_options": {
             "method": "GET"
           },
@@ -657,7 +657,7 @@
         "y": 14
       },
       "id": 4,
-      "title": "전처리 계산 결과 (bronze→silver)",
+      "title": "전처리 계산 결과 (bronze→silver) — 상단 $dq_stage로 정상/백필 전환",
       "type": "row"
     },
     {
@@ -723,7 +723,7 @@
           "type": "json",
           "source": "url",
           "format": "table",
-          "url": "${dq_api_url}/dq/series?stage=bronze_to_silver&metric=bronze_loaded&from=${__from}&to=${__to}",
+          "url": "${dq_api_url}/dq/series?stage=${dq_stage}&metric=bronze_loaded&from=${__from}&to=${__to}",
           "url_options": {
             "method": "GET"
           },
@@ -755,7 +755,7 @@
           "type": "json",
           "source": "url",
           "format": "table",
-          "url": "${dq_api_url}/dq/series?stage=bronze_to_silver&metric=silver_ok&from=${__from}&to=${__to}",
+          "url": "${dq_api_url}/dq/series?stage=${dq_stage}&metric=silver_ok&from=${__from}&to=${__to}",
           "url_options": {
             "method": "GET"
           },
@@ -787,7 +787,7 @@
           "type": "json",
           "source": "url",
           "format": "table",
-          "url": "${dq_api_url}/dq/series?stage=bronze_to_silver&metric=silver_error&from=${__from}&to=${__to}",
+          "url": "${dq_api_url}/dq/series?stage=${dq_stage}&metric=silver_error&from=${__from}&to=${__to}",
           "url_options": {
             "method": "GET"
           },
@@ -890,7 +890,7 @@
           "type": "json",
           "source": "url",
           "format": "table",
-          "url": "${dq_api_url}/dq/series?stage=bronze_to_silver&metric=error_rate&from=${__from}&to=${__to}",
+          "url": "${dq_api_url}/dq/series?stage=${dq_stage}&metric=error_rate&from=${__from}&to=${__to}",
           "url_options": {
             "method": "GET"
           },
@@ -925,7 +925,7 @@
         "y": 23
       },
       "id": 109,
-      "title": "전처리 오류 유형 · 선택 기간의 최신 실행",
+      "title": "전처리 오류 유형 · 선택 기간의 최신 실행 ($dq_stage 적용)",
       "type": "row"
     },
     {
@@ -1017,7 +1017,7 @@
           "type": "json",
           "source": "url",
           "format": "table",
-          "url": "${dq_api_url}/dq/error-types?stage=bronze_to_silver&from=${__from}&to=${__to}",
+          "url": "${dq_api_url}/dq/error-types?stage=${dq_stage}&from=${__from}&to=${__to}",
           "url_options": {
             "method": "GET"
           },
@@ -1115,7 +1115,7 @@
           "type": "json",
           "source": "url",
           "format": "table",
-          "url": "${dq_api_url}/dq/error-types?stage=bronze_to_silver&from=${__from}&to=${__to}",
+          "url": "${dq_api_url}/dq/error-types?stage=${dq_stage}&from=${__from}&to=${__to}",
           "url_options": {
             "method": "GET"
           },
@@ -1587,100 +1587,6 @@
         }
       ],
       "type": "table"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 52
-      },
-      "id": 110,
-      "title": "백필 활동 (bronze_to_silver_backfill — 정상 조회에서 격리된 stage)",
-      "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "yesoreyeram-infinity-datasource",
-        "uid": "${dq_datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "filterable": true
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 10,
-        "w": 24,
-        "x": 0,
-        "y": 53
-      },
-      "id": 111,
-      "options": {
-        "showHeader": true,
-        "sortBy": [
-          {
-            "displayName": "created_at",
-            "desc": true
-          }
-        ]
-      },
-      "description": "과거 백필(bronze_to_silver, history-only)이 남긴 DQ 행. 정상 배치 stage(bronze_to_silver)와는 다른 stage라 위 패널들엔 안 보인다 — 이 표가 유일한 노출 지점. run_id는 backfill_<source_run_id> 형식. silver_current/gold/CDC/Neo4j는 미반영(history·DQ만).",
-      "title": "백필 DQ 행 (dq_metrics, stage=bronze_to_silver_backfill)",
-      "targets": [
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "${dq_datasource}"
-          },
-          "refId": "A",
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "${dq_api_url}/dq/rows?stage=bronze_to_silver_backfill&limit=200&from=${__from}&to=${__to}",
-          "url_options": {
-            "method": "GET"
-          },
-          "root_selector": "",
-          "columns": [
-            {
-              "selector": "created_at",
-              "text": "created_at",
-              "type": "timestamp"
-            },
-            {
-              "selector": "batch_date",
-              "text": "batch_date",
-              "type": "string"
-            },
-            {
-              "selector": "run_id",
-              "text": "run_id",
-              "type": "string"
-            },
-            {
-              "selector": "metric_name",
-              "text": "metric_name",
-              "type": "string"
-            },
-            {
-              "selector": "metric_value",
-              "text": "metric_value",
-              "type": "number"
-            },
-            {
-              "selector": "target_table",
-              "text": "target_table",
-              "type": "string"
-            }
-          ]
-        }
-      ],
-      "type": "table"
     }
   ],
   "templating": {
@@ -1724,6 +1630,29 @@
         "query": "loki",
         "refresh": 1,
         "type": "datasource"
+      },
+      {
+        "current": {
+          "text": "정상",
+          "value": "bronze_to_silver"
+        },
+        "hide": 0,
+        "label": "전처리 단계(정상/백필)",
+        "name": "dq_stage",
+        "options": [
+          {
+            "text": "정상",
+            "value": "bronze_to_silver",
+            "selected": true
+          },
+          {
+            "text": "백필",
+            "value": "bronze_to_silver_backfill",
+            "selected": false
+          }
+        ],
+        "query": "정상 : bronze_to_silver, 백필 : bronze_to_silver_backfill",
+        "type": "custom"
       }
     ]
   }
