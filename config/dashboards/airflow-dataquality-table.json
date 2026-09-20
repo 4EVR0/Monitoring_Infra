@@ -2,7 +2,7 @@
   "title": "Oliveyoung 데이터 정합성 (테이블 소스)",
   "uid": "oliveyoung-dq-table",
   "schemaVersion": 38,
-  "version": 2,
+  "version": 3,
   "refresh": "5m",
   "time": {
     "from": "now-30d",
@@ -130,7 +130,12 @@
           "max": 1,
           "thresholds": {
             "mode": "absolute",
-            "steps": [{"color": "blue", "value": null}]
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
           },
           "links": [
             {
@@ -835,7 +840,12 @@
           "max": 1,
           "thresholds": {
             "mode": "absolute",
-            "steps": [{"color": "blue", "value": null}]
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
           },
           "links": [
             {
@@ -908,40 +918,77 @@
     },
     {
       "collapsed": false,
-      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 23},
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 23
+      },
       "id": 109,
       "title": "전처리 오류 유형 · 선택 기간의 최신 실행",
       "type": "row"
     },
     {
-      "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "${dq_datasource}"},
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "${dq_datasource}"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "palette-classic"},
+          "color": {
+            "mode": "palette-classic"
+          },
           "unit": "short",
           "min": 0,
-          "custom": {"axisPlacement": "auto", "fillOpacity": 80, "lineWidth": 1}
+          "custom": {
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "lineWidth": 1
+          }
         },
         "overrides": [
           {
-            "matcher": {"id": "byName", "options": "class"},
+            "matcher": {
+              "id": "byName",
+              "options": "class"
+            },
             "properties": [
               {
                 "id": "mappings",
                 "value": [
-                  {"type": "value", "options": {
-                    "rejected": {"text": "제외", "color": "red"},
-                    "residual": {"text": "잔여 성분", "color": "blue"},
-                    "unclassified": {"text": "미분류", "color": "orange"},
-                    "other": {"text": "기타", "color": "purple"}
-                  }}
+                  {
+                    "type": "value",
+                    "options": {
+                      "rejected": {
+                        "text": "제외",
+                        "color": "red"
+                      },
+                      "residual": {
+                        "text": "잔여 성분",
+                        "color": "blue"
+                      },
+                      "unclassified": {
+                        "text": "미분류",
+                        "color": "orange"
+                      },
+                      "other": {
+                        "text": "기타",
+                        "color": "purple"
+                      }
+                    }
+                  }
                 ]
               }
             ]
           }
         ]
       },
-      "gridPos": {"h": 8, "w": 17, "x": 0, "y": 24},
+      "gridPos": {
+        "h": 8,
+        "w": 17,
+        "x": 0,
+        "y": 24
+      },
       "id": 105,
       "options": {
         "orientation": "horizontal",
@@ -951,126 +998,260 @@
         "barWidth": 0.7,
         "groupWidth": 0.7,
         "stacking": "none",
-        "tooltip": {"mode": "single"},
-        "legend": {"displayMode": "hidden"}
+        "tooltip": {
+          "mode": "single"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        }
       },
       "description": "선택 기간에 기록된 최신 bronze→silver 실행(created_at 기준)의 오류 레코드 건수. REJECTED는 제외 유형, UNMAPPED_RESIDUAL은 정상 적재와 겹칠 수도 있는 잔여 성분이다. 상품 수가 아니며, 오른쪽 집계 상태가 정상일 때만 막대가 표시된다. 신규 유형은 자동으로 추가된다.",
       "title": "오류 유형별 레코드 건수",
       "targets": [
         {
-          "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "${dq_datasource}"},
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${dq_datasource}"
+          },
           "refId": "A",
           "type": "json",
           "source": "url",
           "format": "table",
           "url": "${dq_api_url}/dq/error-types?stage=bronze_to_silver&from=${__from}&to=${__to}",
-          "url_options": {"method": "GET"},
+          "url_options": {
+            "method": "GET"
+          },
           "root_selector": "rows",
           "columns": [
-            {"selector": "error_type", "text": "error_type", "type": "string"},
-            {"selector": "count", "text": "count", "type": "number"},
-            {"selector": "class", "text": "class", "type": "string"}
+            {
+              "selector": "error_type",
+              "text": "error_type",
+              "type": "string"
+            },
+            {
+              "selector": "count",
+              "text": "count",
+              "type": "number"
+            },
+            {
+              "selector": "class",
+              "text": "class",
+              "type": "string"
+            }
           ]
         }
       ],
       "type": "barchart"
     },
     {
-      "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "${dq_datasource}"},
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "${dq_datasource}"
+      },
       "fieldConfig": {
         "defaults": {
           "mappings": [
-            {"type": "value", "options": {
-              "ok": {"text": "집계 정상", "color": "green"},
-              "no_breakdown": {"text": "유형별 자료 없음", "color": "yellow"},
-              "incomplete": {"text": "집계 불완전", "color": "red"},
-              "no_data_in_range": {"text": "선택 기간에 실행 없음", "color": "blue"},
-              "no_data": {"text": "관측 기록 없음", "color": "blue"}
-            }}
+            {
+              "type": "value",
+              "options": {
+                "ok": {
+                  "text": "집계 정상",
+                  "color": "green"
+                },
+                "no_breakdown": {
+                  "text": "유형별 자료 없음",
+                  "color": "yellow"
+                },
+                "incomplete": {
+                  "text": "집계 불완전",
+                  "color": "red"
+                },
+                "no_data_in_range": {
+                  "text": "선택 기간에 실행 없음",
+                  "color": "blue"
+                },
+                "no_data": {
+                  "text": "관측 기록 없음",
+                  "color": "blue"
+                }
+              }
+            }
           ],
-          "color": {"mode": "thresholds"}
+          "color": {
+            "mode": "thresholds"
+          }
         },
         "overrides": []
       },
-      "gridPos": {"h": 3, "w": 7, "x": 17, "y": 24},
+      "gridPos": {
+        "h": 3,
+        "w": 7,
+        "x": 17,
+        "y": 24
+      },
       "id": 106,
       "options": {
         "colorMode": "background",
         "graphMode": "none",
         "justifyMode": "center",
         "textMode": "value",
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
       },
       "description": "ok=유형 합계가 계산된 silver_error와 일치(0건 포함). no_breakdown=구버전 실행 또는 유형별 저장 실패로 구분 불가. incomplete=합계 불일치. 기간 내 실행 없음·API 조회 실패는 각각 별도로 확인한다.",
       "title": "유형별 집계 상태",
       "targets": [
         {
-          "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "${dq_datasource}"},
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${dq_datasource}"
+          },
           "refId": "A",
           "type": "json",
           "source": "url",
           "format": "table",
           "url": "${dq_api_url}/dq/error-types?stage=bronze_to_silver&from=${__from}&to=${__to}",
-          "url_options": {"method": "GET"},
+          "url_options": {
+            "method": "GET"
+          },
           "root_selector": "",
-          "columns": [{"selector": "status", "text": "status", "type": "string"}]
+          "columns": [
+            {
+              "selector": "status",
+              "text": "status",
+              "type": "string"
+            }
+          ]
         }
       ],
       "type": "stat"
     },
     {
-      "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "${dq_datasource}"},
-      "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "blue"}}, "overrides": []},
-      "gridPos": {"h": 2, "w": 7, "x": 17, "y": 27},
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "${dq_datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 2,
+        "w": 7,
+        "x": 17,
+        "y": 27
+      },
       "id": 107,
       "options": {
         "colorMode": "none",
         "graphMode": "none",
         "justifyMode": "center",
         "textMode": "value",
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
       },
       "description": "선택된 최신 기록의 batch_date. 최신 판단은 batch_date 최대가 아니라 기록 시각 created_at 기준이므로 재실행·백필 시 과거 배치일 수도 있다.",
       "title": "관측 배치일",
       "targets": [
         {
-          "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "${dq_datasource}"},
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${dq_datasource}"
+          },
           "refId": "A",
           "type": "json",
           "source": "url",
           "format": "table",
           "url": "${dq_api_url}/dq/error-types?stage=bronze_to_silver&from=${__from}&to=${__to}",
-          "url_options": {"method": "GET"},
+          "url_options": {
+            "method": "GET"
+          },
           "root_selector": "",
-          "columns": [{"selector": "batch_date", "text": "batch_date", "type": "string"}]
+          "columns": [
+            {
+              "selector": "batch_date",
+              "text": "batch_date",
+              "type": "string"
+            }
+          ]
         }
       ],
       "type": "stat"
     },
     {
-      "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "${dq_datasource}"},
-      "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "blue"}, "unit": "short", "min": 0}, "overrides": []},
-      "gridPos": {"h": 3, "w": 7, "x": 17, "y": 29},
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "${dq_datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 7,
+        "x": 17,
+        "y": 29
+      },
       "id": 108,
       "options": {
         "colorMode": "none",
         "graphMode": "none",
         "justifyMode": "center",
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
       },
       "description": "silver_error 마커 값: 해당 실행에서 적재 전에 계산한 오류 레코드 수. 실제 Iceberg 적재 성공이나 제외 상품 수가 아니다. 유형별 막대와 합계 비교는 집계 상태에서 판정한다.",
       "title": "오류 레코드 합계 (계산값)",
       "targets": [
         {
-          "datasource": {"type": "yesoreyeram-infinity-datasource", "uid": "${dq_datasource}"},
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${dq_datasource}"
+          },
           "refId": "A",
           "type": "json",
           "source": "url",
           "format": "table",
           "url": "${dq_api_url}/dq/error-types?stage=bronze_to_silver&from=${__from}&to=${__to}",
-          "url_options": {"method": "GET"},
+          "url_options": {
+            "method": "GET"
+          },
           "root_selector": "",
-          "columns": [{"selector": "silver_error", "text": "silver_error", "type": "number"}]
+          "columns": [
+            {
+              "selector": "silver_error",
+              "text": "silver_error",
+              "type": "number"
+            }
+          ]
         }
       ],
       "type": "stat"
@@ -1385,6 +1566,100 @@
             {
               "selector": "stage",
               "text": "stage",
+              "type": "string"
+            },
+            {
+              "selector": "metric_name",
+              "text": "metric_name",
+              "type": "string"
+            },
+            {
+              "selector": "metric_value",
+              "text": "metric_value",
+              "type": "number"
+            },
+            {
+              "selector": "target_table",
+              "text": "target_table",
+              "type": "string"
+            }
+          ]
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 52
+      },
+      "id": 110,
+      "title": "백필 활동 (bronze_to_silver_backfill — 정상 조회에서 격리된 stage)",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "${dq_datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "filterable": true
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 53
+      },
+      "id": 111,
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "created_at",
+            "desc": true
+          }
+        ]
+      },
+      "description": "과거 백필(bronze_to_silver, history-only)이 남긴 DQ 행. 정상 배치 stage(bronze_to_silver)와는 다른 stage라 위 패널들엔 안 보인다 — 이 표가 유일한 노출 지점. run_id는 backfill_<source_run_id> 형식. silver_current/gold/CDC/Neo4j는 미반영(history·DQ만).",
+      "title": "백필 DQ 행 (dq_metrics, stage=bronze_to_silver_backfill)",
+      "targets": [
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${dq_datasource}"
+          },
+          "refId": "A",
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "${dq_api_url}/dq/rows?stage=bronze_to_silver_backfill&limit=200&from=${__from}&to=${__to}",
+          "url_options": {
+            "method": "GET"
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "created_at",
+              "text": "created_at",
+              "type": "timestamp"
+            },
+            {
+              "selector": "batch_date",
+              "text": "batch_date",
+              "type": "string"
+            },
+            {
+              "selector": "run_id",
+              "text": "run_id",
               "type": "string"
             },
             {

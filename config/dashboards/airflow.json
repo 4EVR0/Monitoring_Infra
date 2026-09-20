@@ -1,985 +1,3592 @@
 {
-  "title": "Airflow 모니터링",
-  "uid": "airflow-monitoring",
-  "schemaVersion": 38,
-  "version": 6,
-  "refresh": "30s",
-  "time": {"from": "now-1h", "to": "now"},
-  "timezone": "browser",
-  "panels": [
+  "annotations": [
     {
-      "collapsed": false,
-      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
-      "id": 11,
-      "title": "실행량 · 대기 (기존 StatsD 집계)",
-      "type": "row"
-    },
-    {
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
-      "fieldConfig": {
-        "defaults": {
-          "color": {"mode": "thresholds"},
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {"color": "blue", "value": null},
-              {"color": "green", "value": 1}
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 1},
-      "id": 12,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "center",
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
-      },
-      "description": "현재 executor running 태스크의 집계 개수. 여러 호스트 선택 시 합산된다. 어떤 DAG·태스크인지와 실행 경과는 아래 exporter 표에서 확인한다.",
-      "title": "실행 중 태스크 수 (합계)",
-      "targets": [
-        {
-          "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "sum(airflow_executor_running_tasks{host=~\"$host\"})",
-          "legendFormat": "running",
-          "refId": "A"
+      "kind": "AnnotationQuery",
+      "spec": {
+        "builtIn": true,
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "query": {
+          "datasource": {
+            "name": "-- Grafana --"
+          },
+          "group": "grafana",
+          "kind": "DataQuery",
+          "spec": {},
+          "version": "v0"
         }
-      ],
-      "type": "stat"
-    },
-    {
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
-      "fieldConfig": {
-        "defaults": {
-          "color": {"mode": "thresholds"},
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {"color": "green", "value": null},
-              {"color": "yellow", "value": 1},
-              {"color": "orange", "value": 5}
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 1},
-      "id": 13,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "center",
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
-      },
-      "description": "큐에서 실행 대기 중인 태스크 개수 (executor queued). 계속 쌓이면 슬롯 부족 신호.",
-      "title": "큐 대기 태스크",
-      "targets": [
-        {
-          "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "sum(airflow_executor_queued_tasks{host=~\"$host\"})",
-          "legendFormat": "queued",
-          "refId": "A"
-        }
-      ],
-      "type": "stat"
-    },
-    {
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
-      "fieldConfig": {
-        "defaults": {
-          "color": {"mode": "thresholds"},
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {"color": "red", "value": null},
-              {"color": "green", "value": 1}
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 1},
-      "id": 14,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
-      },
-      "description": "Executor 가용 슬롯 수. 0이면 더 이상 태스크를 못 띄움 (포화).",
-      "title": "가용 슬롯",
-      "targets": [
-        {
-          "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "sum(airflow_executor_open_slots{host=~\"$host\"})",
-          "legendFormat": "open",
-          "refId": "A"
-        }
-      ],
-      "type": "stat"
-    },
-    {
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
-      "fieldConfig": {
-        "defaults": {
-          "color": {"mode": "thresholds"},
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {"color": "green", "value": null},
-              {"color": "red", "value": 1}
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 1},
-      "id": 15,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
-      },
-      "description": "슬롯이 없어 굶고 있는(starving) 태스크 수. >0이면 풀/슬롯 증설 검토.",
-      "title": "Starving 태스크",
-      "targets": [
-        {
-          "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "sum(airflow_pool_starving_tasks{host=~\"$host\"})",
-          "legendFormat": "starving",
-          "refId": "A"
-        }
-      ],
-      "type": "stat"
-    },
-    {
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
-      "fieldConfig": {
-        "defaults": {
-          "color": {"mode": "palette-classic"},
-          "custom": {"lineWidth": 1, "fillOpacity": 20, "stacking": {"mode": "none"}},
-          "unit": "short",
-          "min": 0,
-          "links": [
-            {
-              "title": "Loki — 서버 로그 보기",
-              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
-              "targetBlank": true
-            }
-          ]
-        },
-        "overrides": []
-      },
-      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 5},
-      "id": 16,
-      "options": {
-        "tooltip": {"mode": "multi"},
-        "legend": {"displayMode": "list", "placement": "bottom"}
-      },
-      "description": "호스트별 실행 중·큐 대기 태스크 수 추이. 개수만으로 실행 중인 태스크의 정체나 실제 작업 진행 여부는 알 수 없다.",
-      "title": "실행 / 대기 태스크 추이",
-      "targets": [
-        {
-          "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "sum by (host) (airflow_executor_running_tasks{host=~\"$host\"})",
-          "legendFormat": "실행 중 · {{host}}",
-          "refId": "A"
-        },
-        {
-          "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "sum by (host) (airflow_executor_queued_tasks{host=~\"$host\"})",
-          "legendFormat": "대기 · {{host}}",
-          "refId": "B"
-        }
-      ],
-      "type": "timeseries"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 11},
-      "id": 26,
-      "title": "현재 DAG · 태스크 (호스트별 exporter 실측)",
-      "type": "row"
-    },
-    {
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
-      "fieldConfig": {
-        "defaults": {
-          "color": {"mode": "thresholds"},
-          "thresholds": {"mode": "absolute", "steps": [
-            {"color": "red", "value": null},
-            {"color": "green", "value": 1}
-          ]},
-          "mappings": [{"type": "value", "options": {
-            "0": {"text": "수집 실패", "color": "red"},
-            "1": {"text": "수집 정상", "color": "green"}
-          }}]
-        },
-        "overrides": []
-      },
-      "gridPos": {"h": 4, "w": 8, "x": 0, "y": 12},
-      "id": 27,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "textMode": "value_and_name",
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
-      },
-      "description": "호스트별 가장 최근 전체 Airflow REST 수집 성공 여부. 0=API 오류·응답 불일치·조회 상한 초과, No data=exporter 또는 Alloy/Prometheus 수집 경로를 먼저 확인. 웹서버가 죽으면 상세 관측도 실패한다.",
-      "title": "상태 수집",
-      "targets": [{
-        "datasource": {"type": "prometheus", "uid": "${datasource}"},
-        "expr": "airflow_observer_collection_success{host=~\"$host\"}",
-        "legendFormat": "{{host}}",
-        "instant": true,
-        "refId": "A"
-      }],
-      "type": "stat"
-    },
-    {
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
-      "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "blue"}, "unit": "short"}, "overrides": []},
-      "gridPos": {"h": 4, "w": 8, "x": 8, "y": 12},
-      "id": 28,
-      "options": {
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "textMode": "value_and_name",
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
-      },
-      "description": "호스트별 queued+running DAG 실행 건수. 상태 수집이 정상일 때 0은 실제로 활성 실행이 없는 것이다.",
-      "title": "활성 DAG 실행 수",
-      "targets": [{
-        "datasource": {"type": "prometheus", "uid": "${datasource}"},
-        "expr": "airflow_observer_active_run_count{host=~\"$host\"}",
-        "legendFormat": "{{host}}",
-        "instant": true,
-        "refId": "A"
-      }],
-      "type": "stat"
-    },
-    {
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
-      "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "blue"}, "unit": "short"}, "overrides": []},
-      "gridPos": {"h": 4, "w": 8, "x": 16, "y": 12},
-      "id": 29,
-      "options": {
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "textMode": "value_and_name",
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
-      },
-      "description": "호스트별 queued+running 태스크 인스턴스 건수. 위 StatsD의 running 전용 합계와 분모가 다르다. 상태 수집이 정상일 때 0은 활성 태스크가 없는 것이다.",
-      "title": "활성 태스크 수",
-      "targets": [{
-        "datasource": {"type": "prometheus", "uid": "${datasource}"},
-        "expr": "airflow_observer_active_task_count{host=~\"$host\"}",
-        "legendFormat": "{{host}}",
-        "instant": true,
-        "refId": "A"
-      }],
-      "type": "stat"
-    },
-    {
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
-      "fieldConfig": {
-        "defaults": {"custom": {"align": "auto", "cellOptions": {"type": "auto"}}},
-        "overrides": [
-          {"matcher": {"id": "byName", "options": "경과"}, "properties": [{"id": "unit", "value": "s"}, {"id": "decimals", "value": 0}]}
-        ]
-      },
-      "gridPos": {"h": 8, "w": 14, "x": 0, "y": 16},
-      "id": 30,
-      "options": {"showHeader": true, "cellHeight": "sm", "footer": {"show": false}, "sortBy": [{"displayName": "경과", "desc": true}]},
-      "description": "현재 running 태스크는 시작부터, queued 태스크는 대기 시작부터의 경과시간(초). Airflow가 시작/큐 시각을 주지 않은 태스크는 이 표에 없을 수 있으니 위 활성 건수와 함께 본다. 경과가 길다는 사실만으로 크롤 정체를 단정하지 않는다.",
-      "title": "현재 태스크 · 대기/실행 경과",
-      "targets": [{
-        "datasource": {"type": "prometheus", "uid": "${datasource}"},
-        "expr": "(time() - airflow_observer_task_start_timestamp_seconds{host=~\"$host\",dag_id=~\"$dag_id\",state=\"running\"}) or (time() - airflow_observer_task_queued_timestamp_seconds{host=~\"$host\",dag_id=~\"$dag_id\",state=\"queued\"})",
-        "format": "table",
-        "instant": true,
-        "refId": "A"
-      }],
-      "transformations": [{
-        "id": "organize",
-        "options": {
-          "excludeByName": {"Time": true, "__name__": true},
-          "renameByName": {"host": "서버", "dag_id": "DAG", "task_id": "태스크", "run_id": "실행 ID", "state": "상태", "map_index": "매핑 인덱스", "Value": "경과"}
-        }
-      }],
-      "type": "table"
-    },
-    {
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
-      "fieldConfig": {
-        "defaults": {"custom": {"align": "auto", "cellOptions": {"type": "auto"}}},
-        "overrides": [
-          {"matcher": {"id": "byName", "options": "경과"}, "properties": [{"id": "unit", "value": "s"}, {"id": "decimals", "value": 0}]}
-        ]
-      },
-      "gridPos": {"h": 8, "w": 10, "x": 14, "y": 16},
-      "id": 31,
-      "options": {"showHeader": true, "cellHeight": "sm", "footer": {"show": false}, "sortBy": [{"displayName": "경과", "desc": true}]},
-      "description": "현재 시작된 DAG 실행의 경과시간(초). queued 상태로 시작시각이 없는 실행은 위 활성 DAG 건수에는 포함되지만 이 표에는 아직 없다.",
-      "title": "현재 DAG 실행 경과",
-      "targets": [{
-        "datasource": {"type": "prometheus", "uid": "${datasource}"},
-        "expr": "time() - airflow_observer_dag_active_run_start_timestamp_seconds{host=~\"$host\",dag_id=~\"$dag_id\"}",
-        "format": "table",
-        "instant": true,
-        "refId": "A"
-      }],
-      "transformations": [{
-        "id": "organize",
-        "options": {
-          "excludeByName": {"Time": true, "__name__": true},
-          "renameByName": {"host": "서버", "dag_id": "DAG", "run_id": "실행 ID", "state": "상태", "Value": "경과"}
-        }
-      }],
-      "type": "table"
-    },
-    {
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
-      "fieldConfig": {
-        "defaults": {"custom": {"align": "auto", "cellOptions": {"type": "auto"}}},
-        "overrides": [
-          {"matcher": {"id": "byName", "options": "완료 후 경과"}, "properties": [{"id": "unit", "value": "s"}, {"id": "decimals", "value": 0}]},
-          {"matcher": {"id": "byName", "options": "상태"}, "properties": [
-            {"id": "custom.cellOptions", "value": {"type": "color-text"}},
-            {"id": "mappings", "value": [{"type": "value", "options": {
-              "success": {"text": "성공", "color": "green"},
-              "failed": {"text": "실패", "color": "red"}
-            }}]}
-          ]}
-        ]
-      },
-      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 24},
-      "id": 32,
-      "options": {"showHeader": true, "cellHeight": "sm", "footer": {"show": false}, "sortBy": [{"displayName": "완료 후 경과", "desc": true}]},
-      "description": "DAG별 가장 최근 완료 실행의 성공/실패와 종료 후 지난 시간(초). 현재 실행과 별개이며, DAG가 아직 한 번도 완료되지 않았다면 행이 없다. 데이터 없음은 상태 수집 실패와 구별한다.",
-      "title": "DAG별 직전 완료 결과 · 신선도",
-      "targets": [{
-        "datasource": {"type": "prometheus", "uid": "${datasource}"},
-        "expr": "time() - airflow_observer_dag_last_completed_end_timestamp_seconds{host=~\"$host\",dag_id=~\"$dag_id\"}",
-        "format": "table",
-        "instant": true,
-        "refId": "A"
-      }],
-      "transformations": [{
-        "id": "organize",
-        "options": {
-          "excludeByName": {"Time": true, "__name__": true},
-          "renameByName": {"host": "서버", "dag_id": "DAG", "state": "상태", "Value": "완료 후 경과"}
-        }
-      }],
-      "type": "table"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 32},
-      "id": 1,
-      "title": "스케줄러 신호 · 종료 실행시간 추세 (현재 실행 경과 아님)",
-      "type": "row"
-    },
-    {
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
-      "fieldConfig": {
-        "defaults": {
-          "color": {"mode": "thresholds"},
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {"color": "red", "value": null},
-              {"color": "green", "value": 1}
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 33},
-      "id": 2,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
-      },
-      "description": "최근 5분의 스케줄러 heartbeat 증가량. 0이면 heartbeat가 증가하지 않은 상태이며, 시계열 자체가 없으면 관측 불가로 별도 확인해야 한다.",
-      "title": "최근 5분 Heartbeat",
-      "targets": [
-        {
-          "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "increase(airflow_scheduler_heartbeat{host=~\"$host\"}[5m])",
-          "legendFormat": "{{host}}",
-          "refId": "A"
-        }
-      ],
-      "type": "stat"
-    },
-    {
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
-      "fieldConfig": {
-        "defaults": {
-          "color": {"mode": "palette-classic"},
-          "custom": {"lineWidth": 1, "fillOpacity": 10},
-          "unit": "none",
-          "links": [
-            {
-              "title": "Loki — DAG 로그 보기",
-              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\",dag_id=\\\"${__field.labels.dag_id}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
-              "targetBlank": true
-            }
-          ]
-        },
-        "overrides": []
-      },
-      "gridPos": {"h": 4, "w": 10, "x": 4, "y": 33},
-      "id": 3,
-      "options": {
-        "tooltip": {"mode": "multi"},
-        "legend": {"displayMode": "list", "placement": "bottom"}
-      },
-      "description": "완료된 성공 DAG 실행시간의 StatsD p50 추세. 현재 실행의 경과시간이 아니다. 원본 timer 단위는 운영 메트릭과 대조 전이라 숫자 단위를 미표기했다. 개별 실행 상태·경과는 후속 로컬 exporter 대상이다.",
-      "title": "성공 DAG 소요 p50 (과거 집계)",
-      "targets": [
-        {
-          "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "airflow_dagrun_duration_success{dag_id=~\"$dag_id\",host=~\"$host\",quantile=\"0.5\"}",
-          "legendFormat": "{{host}} / {{dag_id}}",
-          "refId": "A"
-        }
-      ],
-      "type": "timeseries"
-    },
-    {
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
-      "fieldConfig": {
-        "defaults": {
-          "color": {"mode": "palette-classic"},
-          "custom": {"lineWidth": 1, "fillOpacity": 10},
-          "unit": "none",
-          "links": [
-            {
-              "title": "Loki — DAG 로그 보기",
-              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\",dag_id=\\\"${__field.labels.dag_id}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
-              "targetBlank": true
-            }
-          ]
-        },
-        "overrides": []
-      },
-      "gridPos": {"h": 4, "w": 10, "x": 14, "y": 33},
-      "id": 4,
-      "options": {
-        "tooltip": {"mode": "multi"},
-        "legend": {"displayMode": "list", "placement": "bottom"}
-      },
-      "description": "완료된 실패 DAG 실행시간의 StatsD p50 추세. 현재 실패 여부나 현재 실행 경과를 뜻하지 않는다. 원본 timer 단위는 운영 메트릭과 대조 전이다.",
-      "title": "실패 DAG 소요 p50 (과거 집계)",
-      "targets": [
-        {
-          "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "airflow_dagrun_duration_failed{dag_id=~\"$dag_id\",host=~\"$host\",quantile=\"0.5\"}",
-          "legendFormat": "{{host}} / {{dag_id}}",
-          "refId": "A"
-        }
-      ],
-      "type": "timeseries"
-    },
-    {
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
-      "fieldConfig": {
-        "defaults": {
-          "color": {"mode": "palette-classic"},
-          "custom": {"lineWidth": 1, "fillOpacity": 10},
-          "unit": "none",
-          "links": [
-            {
-              "title": "Loki — 태스크 로그 보기",
-              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\",dag_id=\\\"${__field.labels.dag_id}\\\",task_id=\\\"${__field.labels.task_id}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
-              "targetBlank": true
-            }
-          ]
-        },
-        "overrides": []
-      },
-      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 37},
-      "id": 5,
-      "options": {
-        "tooltip": {"mode": "multi"},
-        "legend": {"displayMode": "list", "placement": "bottom"}
-      },
-      "description": "완료된 태스크 실행시간의 StatsD p50 추세(dag_id/task_id별). 현재 실행 중인 태스크의 경과시간이 아니다. 원본 timer 단위는 운영 메트릭과 대조 전이다.",
-      "title": "태스크 소요 p50 (과거 집계)",
-      "targets": [
-        {
-          "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "airflow_task_duration{dag_id=~\"$dag_id\",host=~\"$host\",quantile=\"0.5\"}",
-          "legendFormat": "{{host}} / {{dag_id}} / {{task_id}}",
-          "refId": "A"
-        }
-      ],
-      "type": "timeseries"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 43},
-      "id": 17,
-      "title": "태스크 성공 / 실패",
-      "type": "row"
-    },
-    {
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
-      "fieldConfig": {
-        "defaults": {
-          "color": {"mode": "palette-classic"},
-          "custom": {"lineWidth": 1, "fillOpacity": 10},
-          "unit": "short",
-          "min": 0,
-          "links": [
-            {
-              "title": "Loki — 서버 로그 보기",
-              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
-              "targetBlank": true
-            }
-          ]
-        },
-        "overrides": [
-          {
-            "matcher": {"id": "byRegexp", "options": ".*실패.*"},
-            "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}]
-          }
-        ]
-      },
-      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 44},
-      "id": 18,
-      "options": {
-        "tooltip": {"mode": "multi"},
-        "legend": {"displayMode": "list", "placement": "bottom"}
-      },
-      "description": "태스크 인스턴스 성공/실패 발생률 (5분 rate). 실패 라인이 튀면 그 시각 로그 패널을 같이 확인.",
-      "title": "태스크 성공/실패율 (/s)",
-      "targets": [
-        {
-          "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "sum by (host) (rate(airflow_ti_successes{host=~\"$host\"}[5m]))",
-          "legendFormat": "성공 · {{host}}",
-          "refId": "A"
-        },
-        {
-          "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "sum by (host) (rate(airflow_ti_failures{host=~\"$host\"}[5m]))",
-          "legendFormat": "실패 · {{host}}",
-          "refId": "B"
-        }
-      ],
-      "type": "timeseries"
-    },
-    {
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
-      "fieldConfig": {
-        "defaults": {
-          "color": {"mode": "palette-classic"},
-          "custom": {"lineWidth": 1, "fillOpacity": 10},
-          "unit": "short",
-          "min": 0,
-          "links": [
-            {
-              "title": "Loki — 서버 로그 보기",
-              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
-              "targetBlank": true
-            }
-          ]
-        },
-        "overrides": []
-      },
-      "gridPos": {"h": 6, "w": 8, "x": 12, "y": 44},
-      "id": 19,
-      "options": {
-        "tooltip": {"mode": "multi"},
-        "legend": {"displayMode": "list", "placement": "bottom"}
-      },
-      "description": "DockerOperator 성공/실패 발생률 (5분 rate). 모든 DAG가 DockerOperator라 사실상 전체 오퍼레이터 추이.",
-      "title": "DockerOperator 성공/실패 (/s)",
-      "targets": [
-        {
-          "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "sum by (host) (rate(airflow_operator_successes_DockerOperator{host=~\"$host\"}[5m]))",
-          "legendFormat": "성공 · {{host}}",
-          "refId": "A"
-        },
-        {
-          "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "sum by (host) (rate(airflow_operator_failures_DockerOperator{host=~\"$host\"}[5m]))",
-          "legendFormat": "실패 · {{host}}",
-          "refId": "B"
-        }
-      ],
-      "type": "timeseries"
-    },
-    {
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
-      "fieldConfig": {
-        "defaults": {
-          "color": {"mode": "thresholds"},
-          "unit": "short",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {"color": "green", "value": null},
-              {"color": "red", "value": 1}
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {"h": 6, "w": 4, "x": 20, "y": 44},
-      "id": 20,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
-      },
-      "description": "DAG 파일 import 에러 수. >0이면 DAG 파싱 실패(문법 오류 등) — 스케줄 자체가 안 됨.",
-      "title": "DAG import 에러",
-      "targets": [
-        {
-          "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "sum(airflow_dag_processing_import_errors{host=~\"$host\"})",
-          "legendFormat": "import errors",
-          "refId": "A"
-        }
-      ],
-      "type": "stat"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 50},
-      "id": 21,
-      "title": "스케줄러 건강",
-      "type": "row"
-    },
-    {
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
-      "fieldConfig": {
-        "defaults": {
-          "color": {"mode": "palette-classic"},
-          "custom": {"lineWidth": 1, "fillOpacity": 10},
-          "unit": "s",
-          "min": 0,
-          "links": [
-            {
-              "title": "Loki — 서버 로그 보기",
-              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
-              "targetBlank": true
-            }
-          ]
-        },
-        "overrides": []
-      },
-      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 51},
-      "id": 22,
-      "options": {
-        "tooltip": {"mode": "multi"},
-        "legend": {"displayMode": "list", "placement": "bottom"}
-      },
-      "description": "모든 DAG 파일을 파싱하는 데 걸린 총 시간. 늘어나면 스케줄러 부하 신호.",
-      "title": "DAG 총 파싱 시간",
-      "targets": [
-        {
-          "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "airflow_dag_processing_total_parse_time{host=~\"$host\"}",
-          "legendFormat": "{{host}}",
-          "refId": "A"
-        }
-      ],
-      "type": "timeseries"
-    },
-    {
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
-      "fieldConfig": {
-        "defaults": {
-          "color": {"mode": "palette-classic"},
-          "custom": {"lineWidth": 1, "fillOpacity": 10},
-          "unit": "ms",
-          "min": 0,
-          "links": [
-            {
-              "title": "Loki — 서버 로그 보기",
-              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
-              "targetBlank": true
-            }
-          ]
-        },
-        "overrides": []
-      },
-      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 51},
-      "id": 23,
-      "options": {
-        "tooltip": {"mode": "multi"},
-        "legend": {"displayMode": "list", "placement": "bottom"}
-      },
-      "description": "스케줄러 루프 1회 평균 소요시간 (rate(sum)/rate(count)). 길어지면 스케줄링 지연 발생.",
-      "title": "스케줄러 루프 평균시간",
-      "targets": [
-        {
-          "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "sum by (host) (rate(airflow_scheduler_scheduler_loop_duration_sum{host=~\"$host\"}[5m])) / sum by (host) (rate(airflow_scheduler_scheduler_loop_duration_count{host=~\"$host\"}[5m]))",
-          "legendFormat": "{{host}}",
-          "refId": "A"
-        }
-      ],
-      "type": "timeseries"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 57},
-      "id": 6,
-      "title": "시스템 리소스",
-      "type": "row"
-    },
-    {
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
-      "fieldConfig": {
-        "defaults": {
-          "color": {"mode": "palette-classic"},
-          "custom": {"lineWidth": 1, "fillOpacity": 10},
-          "unit": "percent",
-          "min": 0,
-          "max": 100,
-          "links": [
-            {
-              "title": "Loki — 서버 로그 보기",
-              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
-              "targetBlank": true
-            }
-          ]
-        },
-        "overrides": []
-      },
-      "gridPos": {"h": 6, "w": 12, "x": 0, "y": 58},
-      "id": 7,
-      "options": {
-        "tooltip": {"mode": "single"},
-        "legend": {"displayMode": "list", "placement": "bottom"}
-      },
-      "title": "CPU 사용률",
-      "targets": [
-        {
-          "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "100 - (avg by (host) (irate(node_cpu_seconds_total{job=\"airflow-node\",host=~\"$host\",mode=\"idle\"}[5m])) * 100)",
-          "legendFormat": "CPU % · {{host}}",
-          "refId": "A"
-        }
-      ],
-      "type": "timeseries"
-    },
-    {
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
-      "fieldConfig": {
-        "defaults": {
-          "color": {"mode": "palette-classic"},
-          "custom": {"lineWidth": 1, "fillOpacity": 10},
-          "unit": "percent",
-          "min": 0,
-          "max": 100,
-          "links": [
-            {
-              "title": "Loki — 서버 로그 보기",
-              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
-              "targetBlank": true
-            }
-          ]
-        },
-        "overrides": []
-      },
-      "gridPos": {"h": 6, "w": 12, "x": 12, "y": 58},
-      "id": 8,
-      "options": {
-        "tooltip": {"mode": "single"},
-        "legend": {"displayMode": "list", "placement": "bottom"}
-      },
-      "title": "메모리 사용률",
-      "targets": [
-        {
-          "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "(1 - node_memory_MemAvailable_bytes{job=\"airflow-node\",host=~\"$host\"} / node_memory_MemTotal_bytes{job=\"airflow-node\",host=~\"$host\"}) * 100",
-          "legendFormat": "Memory % · {{host}}",
-          "refId": "A"
-        }
-      ],
-      "type": "timeseries"
-    },
-    {
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
-      "fieldConfig": {
-        "defaults": {
-          "color": {"mode": "thresholds"},
-          "unit": "percent",
-          "min": 0,
-          "max": 100,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {"color": "green", "value": null},
-              {"color": "yellow", "value": 70},
-              {"color": "red", "value": 90}
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 64},
-      "id": 9,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}
-      },
-      "title": "디스크 사용률",
-      "targets": [
-        {
-          "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "100 - (node_filesystem_avail_bytes{job=\"airflow-node\",host=~\"$host\",mountpoint=\"/\"} / node_filesystem_size_bytes{job=\"airflow-node\",host=~\"$host\",mountpoint=\"/\"} * 100)",
-          "legendFormat": "Disk % · {{host}}",
-          "refId": "A"
-        }
-      ],
-      "type": "stat"
-    },
-    {
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
-      "fieldConfig": {
-        "defaults": {
-          "color": {"mode": "palette-classic"},
-          "custom": {"lineWidth": 1, "fillOpacity": 10},
-          "unit": "Bps",
-          "links": [
-            {
-              "title": "Loki — 서버 로그 보기",
-              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
-              "targetBlank": true
-            }
-          ]
-        },
-        "overrides": []
-      },
-      "gridPos": {"h": 4, "w": 18, "x": 6, "y": 64},
-      "id": 10,
-      "options": {
-        "tooltip": {"mode": "multi"},
-        "legend": {"displayMode": "list", "placement": "bottom"}
-      },
-      "title": "네트워크 트래픽",
-      "targets": [
-        {
-          "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "irate(node_network_receive_bytes_total{job=\"airflow-node\",host=~\"$host\",device!~\"lo|docker.*\"}[5m])",
-          "legendFormat": "in · {{host}} / {{device}}",
-          "refId": "A"
-        },
-        {
-          "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "irate(node_network_transmit_bytes_total{job=\"airflow-node\",host=~\"$host\",device!~\"lo|docker.*\"}[5m])",
-          "legendFormat": "out · {{host}} / {{device}}",
-          "refId": "B"
-        }
-      ],
-      "type": "timeseries"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 68},
-      "id": 24,
-      "title": "로그 (Loki)",
-      "type": "row"
-    },
-    {
-      "datasource": {"type": "loki", "uid": "${loki_datasource}"},
-      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 69},
-      "id": 25,
-      "options": {
-        "showTime": true,
-        "showLabels": false,
-        "wrapLogMessage": true,
-        "prettifyLogMessage": false,
-        "enableLogDetails": true,
-        "dedupStrategy": "none",
-        "sortOrder": "Descending"
-      },
-      "description": "선택한 서버/DAG의 Airflow 로그 실시간 스트림. 위 메트릭에서 이상 시각을 보고 같은 범위 로그를 여기서 바로 확인. 검색창에 |= \"ERROR\" 추가하면 에러만 필터.",
-      "title": "Airflow 로그",
-      "targets": [
-        {
-          "datasource": {"type": "loki", "uid": "${loki_datasource}"},
-          "expr": "{job=\"airflow\", host=~\"$host\", dag_id=~\"$dag_id\"}",
-          "refId": "A"
-        }
-      ],
-      "type": "logs"
+      }
     }
   ],
-  "templating": {
-    "list": [
-      {
-        "current": {},
-        "hide": 0,
-        "label": "Data Source",
-        "name": "datasource",
-        "query": "prometheus",
-        "refresh": 1,
-        "type": "datasource"
-      },
-      {
-        "current": {},
-        "hide": 0,
-        "label": "Loki",
-        "name": "loki_datasource",
-        "query": "loki",
-        "refresh": 1,
-        "type": "datasource"
-      },
-      {
-        "datasource": {"type": "prometheus", "uid": "${datasource}"},
-        "definition": "label_values(up{job=\"airflow-node\"}, host)",
-        "hide": 0,
-        "includeAll": true,
-        "allValue": ".+",
-        "multi": true,
-        "label": "서버",
-        "name": "host",
-        "query": {
-          "query": "label_values(up{job=\"airflow-node\"}, host)",
-          "refId": "StandardVariableQuery"
+  "cursorSync": "Off",
+  "editable": true,
+  "elements": {
+    "panel-10": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${datasource}"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "irate(node_network_receive_bytes_total{job=\"airflow-node\",host=~\"$host\",device!~\"lo|docker.*\"}[5m])",
+                      "legendFormat": "in · {{host}} / {{device}}"
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              },
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${datasource}"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "irate(node_network_transmit_bytes_total{job=\"airflow-node\",host=~\"$host\",device!~\"lo|docker.*\"}[5m])",
+                      "legendFormat": "out · {{host}} / {{device}}"
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "B"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
         },
-        "refresh": 2,
-        "sort": 1,
-        "type": "query"
-      },
-      {
-        "datasource": {"type": "prometheus", "uid": "${datasource}"},
-        "definition": "label_values({__name__=~\"airflow_dagrun_duration_(success|failed)\",host=~\"$host\"}, dag_id)",
-        "hide": 0,
-        "includeAll": true,
-        "allValue": ".+",
-        "multi": true,
-        "label": "DAG",
-        "name": "dag_id",
-        "query": {
-          "query": "label_values({__name__=~\"airflow_dagrun_duration_(success|failed)\",host=~\"$host\"}, dag_id)",
-          "refId": "StandardVariableQuery"
-        },
-        "refresh": 2,
-        "sort": 1,
-        "type": "query"
+        "description": "",
+        "id": 10,
+        "links": [],
+        "title": "네트워크 트래픽",
+        "vizConfig": {
+          "group": "timeseries",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "axisBorderShow": false,
+                  "axisCenteredZero": false,
+                  "axisColorMode": "text",
+                  "axisLabel": "",
+                  "axisPlacement": "auto",
+                  "barAlignment": 0,
+                  "barWidthFactor": 0.6,
+                  "drawStyle": "line",
+                  "fillOpacity": 10,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "viz": false
+                  },
+                  "insertNulls": false,
+                  "lineInterpolation": "linear",
+                  "lineWidth": 1,
+                  "pointSize": 5,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "showPoints": "auto",
+                  "showValues": false,
+                  "spanNulls": false,
+                  "stacking": {
+                    "group": "A",
+                    "mode": "none"
+                  },
+                  "thresholdsStyle": {
+                    "mode": "off"
+                  }
+                },
+                "links": [
+                  {
+                    "targetBlank": true,
+                    "title": "Loki — 서버 로그 보기",
+                    "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}"
+                  }
+                ],
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                },
+                "unit": "Bps"
+              },
+              "overrides": []
+            },
+            "options": {
+              "annotations": {
+                "clustering": -1,
+                "multiLane": false
+              },
+              "legend": {
+                "calcs": [],
+                "displayMode": "list",
+                "placement": "bottom",
+                "showLegend": true
+              },
+              "tooltip": {
+                "hideZeros": false,
+                "mode": "multi",
+                "sort": "none"
+              }
+            }
+          },
+          "version": "13.0.1"
+        }
       }
-    ]
-  }
+    },
+    "panel-12": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${datasource}"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "sum(airflow_executor_running_tasks{host=~\"$host\"})",
+                      "legendFormat": "running"
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "현재 executor running 태스크의 집계 개수. 여러 호스트 선택 시 합산된다. 어떤 DAG·태스크인지와 실행 경과는 아래 exporter 표에서 확인한다.",
+        "id": 12,
+        "links": [],
+        "title": "실행 중 태스크 수 (합계)",
+        "vizConfig": {
+          "group": "stat",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "blue",
+                      "value": 0
+                    },
+                    {
+                      "color": "green",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              "overrides": []
+            },
+            "options": {
+              "colorMode": "background",
+              "graphMode": "area",
+              "justifyMode": "center",
+              "orientation": "auto",
+              "percentChangeColorMode": "standard",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ],
+                "fields": "",
+                "values": false
+              },
+              "showPercentChange": false,
+              "textMode": "auto",
+              "wideLayout": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-13": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${datasource}"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "sum(airflow_executor_queued_tasks{host=~\"$host\"})",
+                      "legendFormat": "queued"
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "큐에서 실행 대기 중인 태스크 개수 (executor queued). 계속 쌓이면 슬롯 부족 신호.",
+        "id": 13,
+        "links": [],
+        "title": "큐 대기 태스크",
+        "vizConfig": {
+          "group": "stat",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 1
+                    },
+                    {
+                      "color": "orange",
+                      "value": 5
+                    }
+                  ]
+                }
+              },
+              "overrides": []
+            },
+            "options": {
+              "colorMode": "background",
+              "graphMode": "area",
+              "justifyMode": "center",
+              "orientation": "auto",
+              "percentChangeColorMode": "standard",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ],
+                "fields": "",
+                "values": false
+              },
+              "showPercentChange": false,
+              "textMode": "auto",
+              "wideLayout": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-14": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${datasource}"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "sum(airflow_executor_open_slots{host=~\"$host\"})",
+                      "legendFormat": "open"
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "Executor 가용 슬롯 수. 0이면 더 이상 태스크를 못 띄움 (포화).",
+        "id": 14,
+        "links": [],
+        "title": "가용 슬롯",
+        "vizConfig": {
+          "group": "stat",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": 0
+                    },
+                    {
+                      "color": "green",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              "overrides": []
+            },
+            "options": {
+              "colorMode": "background",
+              "graphMode": "none",
+              "justifyMode": "center",
+              "orientation": "auto",
+              "percentChangeColorMode": "standard",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ],
+                "fields": "",
+                "values": false
+              },
+              "showPercentChange": false,
+              "textMode": "auto",
+              "wideLayout": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-15": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${datasource}"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "sum(airflow_pool_starving_tasks{host=~\"$host\"})",
+                      "legendFormat": "starving"
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "슬롯이 없어 굶고 있는(starving) 태스크 수. >0이면 풀/슬롯 증설 검토.",
+        "id": 15,
+        "links": [],
+        "title": "Starving 태스크",
+        "vizConfig": {
+          "group": "stat",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              "overrides": []
+            },
+            "options": {
+              "colorMode": "background",
+              "graphMode": "none",
+              "justifyMode": "center",
+              "orientation": "auto",
+              "percentChangeColorMode": "standard",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ],
+                "fields": "",
+                "values": false
+              },
+              "showPercentChange": false,
+              "textMode": "auto",
+              "wideLayout": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-16": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${datasource}"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "sum by (host) (airflow_executor_running_tasks{host=~\"$host\"})",
+                      "legendFormat": "실행 중 · {{host}}"
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              },
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${datasource}"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "sum by (host) (airflow_executor_queued_tasks{host=~\"$host\"})",
+                      "legendFormat": "대기 · {{host}}"
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "B"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "호스트별 실행 중·큐 대기 태스크 수 추이. 개수만으로 실행 중인 태스크의 정체나 실제 작업 진행 여부는 알 수 없다.",
+        "id": 16,
+        "links": [],
+        "title": "실행 / 대기 태스크 추이",
+        "vizConfig": {
+          "group": "timeseries",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "axisBorderShow": false,
+                  "axisCenteredZero": false,
+                  "axisColorMode": "text",
+                  "axisLabel": "",
+                  "axisPlacement": "auto",
+                  "barAlignment": 0,
+                  "barWidthFactor": 0.6,
+                  "drawStyle": "line",
+                  "fillOpacity": 20,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "viz": false
+                  },
+                  "insertNulls": false,
+                  "lineInterpolation": "linear",
+                  "lineWidth": 1,
+                  "pointSize": 5,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "showPoints": "auto",
+                  "showValues": false,
+                  "spanNulls": false,
+                  "stacking": {
+                    "group": "A",
+                    "mode": "none"
+                  },
+                  "thresholdsStyle": {
+                    "mode": "off"
+                  }
+                },
+                "links": [
+                  {
+                    "targetBlank": true,
+                    "title": "Loki — 서버 로그 보기",
+                    "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}"
+                  }
+                ],
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                },
+                "unit": "short"
+              },
+              "overrides": []
+            },
+            "options": {
+              "annotations": {
+                "clustering": -1,
+                "multiLane": false
+              },
+              "legend": {
+                "calcs": [],
+                "displayMode": "list",
+                "placement": "bottom",
+                "showLegend": true
+              },
+              "tooltip": {
+                "hideZeros": false,
+                "mode": "multi",
+                "sort": "none"
+              }
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-18": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${datasource}"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "sum by (host) (rate(airflow_ti_successes{host=~\"$host\"}[5m]))",
+                      "legendFormat": "성공 · {{host}}"
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              },
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${datasource}"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "sum by (host) (rate(airflow_ti_failures{host=~\"$host\"}[5m]))",
+                      "legendFormat": "실패 · {{host}}"
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "B"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "태스크 인스턴스 성공/실패 발생률 (5분 rate). 실패 라인이 튀면 그 시각 로그 패널을 같이 확인.",
+        "id": 18,
+        "links": [],
+        "title": "태스크 성공/실패율 (/s)",
+        "vizConfig": {
+          "group": "timeseries",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "axisBorderShow": false,
+                  "axisCenteredZero": false,
+                  "axisColorMode": "text",
+                  "axisLabel": "",
+                  "axisPlacement": "auto",
+                  "barAlignment": 0,
+                  "barWidthFactor": 0.6,
+                  "drawStyle": "line",
+                  "fillOpacity": 10,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "viz": false
+                  },
+                  "insertNulls": false,
+                  "lineInterpolation": "linear",
+                  "lineWidth": 1,
+                  "pointSize": 5,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "showPoints": "auto",
+                  "showValues": false,
+                  "spanNulls": false,
+                  "stacking": {
+                    "group": "A",
+                    "mode": "none"
+                  },
+                  "thresholdsStyle": {
+                    "mode": "off"
+                  }
+                },
+                "links": [
+                  {
+                    "targetBlank": true,
+                    "title": "Loki — 서버 로그 보기",
+                    "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}"
+                  }
+                ],
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                },
+                "unit": "short"
+              },
+              "overrides": [
+                {
+                  "matcher": {
+                    "id": "byRegexp",
+                    "options": ".*실패.*"
+                  },
+                  "properties": [
+                    {
+                      "id": "color",
+                      "value": {
+                        "fixedColor": "red",
+                        "mode": "fixed"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "options": {
+              "annotations": {
+                "clustering": -1,
+                "multiLane": false
+              },
+              "legend": {
+                "calcs": [],
+                "displayMode": "list",
+                "placement": "bottom",
+                "showLegend": true
+              },
+              "tooltip": {
+                "hideZeros": false,
+                "mode": "multi",
+                "sort": "none"
+              }
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-19": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${datasource}"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "sum by (host) (rate(airflow_operator_successes_DockerOperator{host=~\"$host\"}[5m]))",
+                      "legendFormat": "성공 · {{host}}"
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              },
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${datasource}"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "sum by (host) (rate(airflow_operator_failures_DockerOperator{host=~\"$host\"}[5m]))",
+                      "legendFormat": "실패 · {{host}}"
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "B"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "DockerOperator 성공/실패 발생률 (5분 rate). 모든 DAG가 DockerOperator라 사실상 전체 오퍼레이터 추이.",
+        "id": 19,
+        "links": [],
+        "title": "DockerOperator 성공/실패 (/s)",
+        "vizConfig": {
+          "group": "timeseries",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "axisBorderShow": false,
+                  "axisCenteredZero": false,
+                  "axisColorMode": "text",
+                  "axisLabel": "",
+                  "axisPlacement": "auto",
+                  "barAlignment": 0,
+                  "barWidthFactor": 0.6,
+                  "drawStyle": "line",
+                  "fillOpacity": 10,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "viz": false
+                  },
+                  "insertNulls": false,
+                  "lineInterpolation": "linear",
+                  "lineWidth": 1,
+                  "pointSize": 5,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "showPoints": "auto",
+                  "showValues": false,
+                  "spanNulls": false,
+                  "stacking": {
+                    "group": "A",
+                    "mode": "none"
+                  },
+                  "thresholdsStyle": {
+                    "mode": "off"
+                  }
+                },
+                "links": [
+                  {
+                    "targetBlank": true,
+                    "title": "Loki — 서버 로그 보기",
+                    "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}"
+                  }
+                ],
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                },
+                "unit": "short"
+              },
+              "overrides": []
+            },
+            "options": {
+              "annotations": {
+                "clustering": -1,
+                "multiLane": false
+              },
+              "legend": {
+                "calcs": [],
+                "displayMode": "list",
+                "placement": "bottom",
+                "showLegend": true
+              },
+              "tooltip": {
+                "hideZeros": false,
+                "mode": "multi",
+                "sort": "none"
+              }
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-2": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${datasource}"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "increase(airflow_scheduler_heartbeat{host=~\"$host\"}[5m])",
+                      "legendFormat": "{{host}}"
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "최근 5분의 스케줄러 heartbeat 증가량. 0이면 heartbeat가 증가하지 않은 상태이며, 시계열 자체가 없으면 관측 불가로 별도 확인해야 한다.",
+        "id": 2,
+        "links": [],
+        "title": "최근 5분 Heartbeat",
+        "vizConfig": {
+          "group": "stat",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": 0
+                    },
+                    {
+                      "color": "green",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              "overrides": []
+            },
+            "options": {
+              "colorMode": "background",
+              "graphMode": "none",
+              "justifyMode": "center",
+              "orientation": "auto",
+              "percentChangeColorMode": "standard",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ],
+                "fields": "",
+                "values": false
+              },
+              "showPercentChange": false,
+              "textMode": "auto",
+              "wideLayout": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-20": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${datasource}"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "sum(airflow_dag_processing_import_errors{host=~\"$host\"})",
+                      "legendFormat": "import errors"
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "DAG 파일 import 에러 수. >0이면 DAG 파싱 실패(문법 오류 등) — 스케줄 자체가 안 됨.",
+        "id": 20,
+        "links": [],
+        "title": "DAG import 에러",
+        "vizConfig": {
+          "group": "stat",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                },
+                "unit": "short"
+              },
+              "overrides": []
+            },
+            "options": {
+              "colorMode": "background",
+              "graphMode": "none",
+              "justifyMode": "center",
+              "orientation": "auto",
+              "percentChangeColorMode": "standard",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ],
+                "fields": "",
+                "values": false
+              },
+              "showPercentChange": false,
+              "textMode": "auto",
+              "wideLayout": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-22": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${datasource}"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "airflow_dag_processing_total_parse_time{host=~\"$host\"}",
+                      "legendFormat": "{{host}}"
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "모든 DAG 파일을 파싱하는 데 걸린 총 시간. 늘어나면 스케줄러 부하 신호.",
+        "id": 22,
+        "links": [],
+        "title": "DAG 총 파싱 시간",
+        "vizConfig": {
+          "group": "timeseries",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "axisBorderShow": false,
+                  "axisCenteredZero": false,
+                  "axisColorMode": "text",
+                  "axisLabel": "",
+                  "axisPlacement": "auto",
+                  "barAlignment": 0,
+                  "barWidthFactor": 0.6,
+                  "drawStyle": "line",
+                  "fillOpacity": 10,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "viz": false
+                  },
+                  "insertNulls": false,
+                  "lineInterpolation": "linear",
+                  "lineWidth": 1,
+                  "pointSize": 5,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "showPoints": "auto",
+                  "showValues": false,
+                  "spanNulls": false,
+                  "stacking": {
+                    "group": "A",
+                    "mode": "none"
+                  },
+                  "thresholdsStyle": {
+                    "mode": "off"
+                  }
+                },
+                "links": [
+                  {
+                    "targetBlank": true,
+                    "title": "Loki — 서버 로그 보기",
+                    "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}"
+                  }
+                ],
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                },
+                "unit": "s"
+              },
+              "overrides": []
+            },
+            "options": {
+              "annotations": {
+                "clustering": -1,
+                "multiLane": false
+              },
+              "legend": {
+                "calcs": [],
+                "displayMode": "list",
+                "placement": "bottom",
+                "showLegend": true
+              },
+              "tooltip": {
+                "hideZeros": false,
+                "mode": "multi",
+                "sort": "none"
+              }
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-23": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${datasource}"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "sum by (host) (rate(airflow_scheduler_scheduler_loop_duration_sum{host=~\"$host\"}[5m])) / sum by (host) (rate(airflow_scheduler_scheduler_loop_duration_count{host=~\"$host\"}[5m]))",
+                      "legendFormat": "{{host}}"
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "스케줄러 루프 1회 평균 소요시간 (rate(sum)/rate(count)). 길어지면 스케줄링 지연 발생.",
+        "id": 23,
+        "links": [],
+        "title": "스케줄러 루프 평균시간",
+        "vizConfig": {
+          "group": "timeseries",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "axisBorderShow": false,
+                  "axisCenteredZero": false,
+                  "axisColorMode": "text",
+                  "axisLabel": "",
+                  "axisPlacement": "auto",
+                  "barAlignment": 0,
+                  "barWidthFactor": 0.6,
+                  "drawStyle": "line",
+                  "fillOpacity": 10,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "viz": false
+                  },
+                  "insertNulls": false,
+                  "lineInterpolation": "linear",
+                  "lineWidth": 1,
+                  "pointSize": 5,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "showPoints": "auto",
+                  "showValues": false,
+                  "spanNulls": false,
+                  "stacking": {
+                    "group": "A",
+                    "mode": "none"
+                  },
+                  "thresholdsStyle": {
+                    "mode": "off"
+                  }
+                },
+                "links": [
+                  {
+                    "targetBlank": true,
+                    "title": "Loki — 서버 로그 보기",
+                    "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}"
+                  }
+                ],
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                },
+                "unit": "ms"
+              },
+              "overrides": []
+            },
+            "options": {
+              "annotations": {
+                "clustering": -1,
+                "multiLane": false
+              },
+              "legend": {
+                "calcs": [],
+                "displayMode": "list",
+                "placement": "bottom",
+                "showLegend": true
+              },
+              "tooltip": {
+                "hideZeros": false,
+                "mode": "multi",
+                "sort": "none"
+              }
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-25": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${loki_datasource}"
+                    },
+                    "group": "loki",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "{job=\"airflow\", host=~\"$host\", dag_id=~\"$dag_id\"}"
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "선택한 서버/DAG의 Airflow 로그 실시간 스트림. 위 메트릭에서 이상 시각을 보고 같은 범위 로그를 여기서 바로 확인. 검색창에 |= \"ERROR\" 추가하면 에러만 필터.",
+        "id": 25,
+        "links": [],
+        "title": "Airflow 로그",
+        "vizConfig": {
+          "group": "logs",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {},
+              "overrides": []
+            },
+            "options": {
+              "dedupStrategy": "none",
+              "enableInfiniteScrolling": false,
+              "enableLogDetails": true,
+              "prettifyLogMessage": false,
+              "showControls": false,
+              "showFieldSelector": false,
+              "showLabels": false,
+              "showLevel": true,
+              "showTime": true,
+              "sortOrder": "Descending",
+              "timestampResolution": "ms",
+              "unwrappedColumns": false,
+              "wrapLogMessage": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-27": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${datasource}"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "airflow_observer_collection_success{host=~\"$host\"}",
+                      "instant": true,
+                      "legendFormat": "{{host}}"
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "호스트별 가장 최근 전체 Airflow REST 수집 성공 여부. 0=API 오류·응답 불일치·조회 상한 초과, No data=exporter 또는 Alloy/Prometheus 수집 경로를 먼저 확인. 웹서버가 죽으면 상세 관측도 실패한다.",
+        "id": 27,
+        "links": [],
+        "title": "상태 수집",
+        "vizConfig": {
+          "group": "stat",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "mappings": [
+                  {
+                    "options": {
+                      "0": {
+                        "color": "red",
+                        "text": "수집 실패"
+                      },
+                      "1": {
+                        "color": "green",
+                        "text": "수집 정상"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ],
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": 0
+                    },
+                    {
+                      "color": "green",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              "overrides": []
+            },
+            "options": {
+              "colorMode": "background",
+              "graphMode": "none",
+              "justifyMode": "center",
+              "orientation": "auto",
+              "percentChangeColorMode": "standard",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ],
+                "fields": "",
+                "values": false
+              },
+              "showPercentChange": false,
+              "textMode": "value_and_name",
+              "wideLayout": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-28": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${datasource}"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "airflow_observer_active_run_count{host=~\"$host\"}",
+                      "instant": true,
+                      "legendFormat": "{{host}}"
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "호스트별 queued+running DAG 실행 건수. 상태 수집이 정상일 때 0은 실제로 활성 실행이 없는 것이다.",
+        "id": 28,
+        "links": [],
+        "title": "활성 DAG 실행 수",
+        "vizConfig": {
+          "group": "stat",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                },
+                "unit": "short"
+              },
+              "overrides": []
+            },
+            "options": {
+              "colorMode": "none",
+              "graphMode": "none",
+              "justifyMode": "center",
+              "orientation": "auto",
+              "percentChangeColorMode": "standard",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ],
+                "fields": "",
+                "values": false
+              },
+              "showPercentChange": false,
+              "textMode": "value_and_name",
+              "wideLayout": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-29": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${datasource}"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "airflow_observer_active_task_count{host=~\"$host\"}",
+                      "instant": true,
+                      "legendFormat": "{{host}}"
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "호스트별 queued+running 태스크 인스턴스 건수. 위 StatsD의 running 전용 합계와 분모가 다르다. 상태 수집이 정상일 때 0은 활성 태스크가 없는 것이다.",
+        "id": 29,
+        "links": [],
+        "title": "활성 태스크 수",
+        "vizConfig": {
+          "group": "stat",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                },
+                "unit": "short"
+              },
+              "overrides": []
+            },
+            "options": {
+              "colorMode": "none",
+              "graphMode": "none",
+              "justifyMode": "center",
+              "orientation": "auto",
+              "percentChangeColorMode": "standard",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ],
+                "fields": "",
+                "values": false
+              },
+              "showPercentChange": false,
+              "textMode": "value_and_name",
+              "wideLayout": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-3": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${datasource}"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "airflow_dagrun_duration_success{dag_id=~\"$dag_id\",host=~\"$host\",quantile=\"0.5\"}",
+                      "legendFormat": "{{host}} / {{dag_id}}"
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "완료된 성공 DAG 실행시간의 StatsD p50 추세. 현재 실행의 경과시간이 아니다. 원본 timer 단위는 운영 메트릭과 대조 전이라 숫자 단위를 미표기했다. 개별 실행 상태·경과는 후속 로컬 exporter 대상이다.",
+        "id": 3,
+        "links": [],
+        "title": "성공 DAG 소요 p50 (과거 집계)",
+        "vizConfig": {
+          "group": "timeseries",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "axisBorderShow": false,
+                  "axisCenteredZero": false,
+                  "axisColorMode": "text",
+                  "axisLabel": "",
+                  "axisPlacement": "auto",
+                  "barAlignment": 0,
+                  "barWidthFactor": 0.6,
+                  "drawStyle": "line",
+                  "fillOpacity": 10,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "viz": false
+                  },
+                  "insertNulls": false,
+                  "lineInterpolation": "linear",
+                  "lineWidth": 1,
+                  "pointSize": 5,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "showPoints": "auto",
+                  "showValues": false,
+                  "spanNulls": false,
+                  "stacking": {
+                    "group": "A",
+                    "mode": "none"
+                  },
+                  "thresholdsStyle": {
+                    "mode": "off"
+                  }
+                },
+                "links": [
+                  {
+                    "targetBlank": true,
+                    "title": "Loki — DAG 로그 보기",
+                    "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\",dag_id=\\\"${__field.labels.dag_id}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}"
+                  }
+                ],
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                },
+                "unit": "none"
+              },
+              "overrides": []
+            },
+            "options": {
+              "annotations": {
+                "clustering": -1,
+                "multiLane": false
+              },
+              "legend": {
+                "calcs": [],
+                "displayMode": "list",
+                "placement": "bottom",
+                "showLegend": true
+              },
+              "tooltip": {
+                "hideZeros": false,
+                "mode": "multi",
+                "sort": "none"
+              }
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-30": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${datasource}"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "(time() - airflow_observer_task_start_timestamp_seconds{host=~\"$host\",dag_id=~\"$dag_id\",state=\"running\"}) or (time() - airflow_observer_task_queued_timestamp_seconds{host=~\"$host\",dag_id=~\"$dag_id\",state=\"queued\"})",
+                      "format": "table",
+                      "instant": true
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": [
+              {
+                "group": "organize",
+                "kind": "Transformation",
+                "spec": {
+                  "options": {
+                    "excludeByName": {
+                      "Time": true,
+                      "__name__": true
+                    },
+                    "includeByName": {},
+                    "indexByName": {
+                      "Time": 0,
+                      "Value": 5,
+                      "dag_id": 2,
+                      "host": 1,
+                      "instance": 8,
+                      "job": 9,
+                      "map_index": 7,
+                      "run_id": 6,
+                      "state": 4,
+                      "task_id": 3
+                    },
+                    "renameByName": {
+                      "Value": "경과",
+                      "dag_id": "DAG",
+                      "host": "서버",
+                      "map_index": "매핑 인덱스",
+                      "run_id": "실행 ID",
+                      "state": "상태",
+                      "task_id": "태스크"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "description": "현재 running 태스크는 시작부터, queued 태스크는 대기 시작부터의 경과시간(초). Airflow가 시작/큐 시각을 주지 않은 태스크는 이 표에 없을 수 있으니 위 활성 건수와 함께 본다. 경과가 길다는 사실만으로 크롤 정체를 단정하지 않는다.",
+        "id": 30,
+        "links": [],
+        "title": "현재 태스크 · 대기/실행 경과",
+        "vizConfig": {
+          "group": "table",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "custom": {
+                  "align": "auto",
+                  "cellOptions": {
+                    "type": "auto"
+                  },
+                  "footer": {
+                    "reducers": []
+                  },
+                  "inspect": false
+                },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                }
+              },
+              "overrides": [
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "경과"
+                  },
+                  "properties": [
+                    {
+                      "id": "unit",
+                      "value": "s"
+                    },
+                    {
+                      "id": "decimals",
+                      "value": 0
+                    },
+                    {
+                      "id": "custom.width",
+                      "value": 67
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "서버"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.width",
+                      "value": 100
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "DAG"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.width",
+                      "value": 150
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "instance"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.width",
+                      "value": 159
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "태스크"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.width",
+                      "value": 52
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "상태"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.width",
+                      "value": 64
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "실행 ID"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.width",
+                      "value": 297
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "매핑 인덱스"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.width",
+                      "value": 82
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "job"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.width",
+                      "value": 124
+                    }
+                  ]
+                }
+              ]
+            },
+            "options": {
+              "cellHeight": "sm",
+              "showHeader": true,
+              "sortBy": [
+                {
+                  "desc": true,
+                  "displayName": "instance"
+                }
+              ]
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-31": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${datasource}"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "time() - airflow_observer_dag_active_run_start_timestamp_seconds{host=~\"$host\",dag_id=~\"$dag_id\"}",
+                      "format": "table",
+                      "instant": true
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": [
+              {
+                "group": "organize",
+                "kind": "Transformation",
+                "spec": {
+                  "options": {
+                    "excludeByName": {
+                      "Time": true,
+                      "__name__": true
+                    },
+                    "includeByName": {},
+                    "indexByName": {
+                      "Time": 0,
+                      "Value": 4,
+                      "dag_id": 2,
+                      "host": 1,
+                      "instance": 6,
+                      "job": 7,
+                      "run_id": 5,
+                      "state": 3
+                    },
+                    "renameByName": {
+                      "Value": "경과",
+                      "dag_id": "DAG",
+                      "host": "서버",
+                      "run_id": "실행 ID",
+                      "state": "상태"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "description": "현재 시작된 DAG 실행의 경과시간(초). queued 상태로 시작시각이 없는 실행은 위 활성 DAG 건수에는 포함되지만 이 표에는 아직 없다.",
+        "id": 31,
+        "links": [],
+        "title": "현재 DAG 실행 경과",
+        "vizConfig": {
+          "group": "table",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "custom": {
+                  "align": "auto",
+                  "cellOptions": {
+                    "type": "auto"
+                  },
+                  "footer": {
+                    "reducers": []
+                  },
+                  "inspect": false
+                },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                }
+              },
+              "overrides": [
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "경과"
+                  },
+                  "properties": [
+                    {
+                      "id": "unit",
+                      "value": "s"
+                    },
+                    {
+                      "id": "decimals",
+                      "value": 0
+                    },
+                    {
+                      "id": "custom.width",
+                      "value": 67
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "서버"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.width",
+                      "value": 100
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "DAG"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.width",
+                      "value": 150
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "상태"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.width",
+                      "value": 64
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "실행 ID"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.width",
+                      "value": 297
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "instance"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.width",
+                      "value": 159
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "job"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.width",
+                      "value": 124
+                    }
+                  ]
+                }
+              ]
+            },
+            "options": {
+              "cellHeight": "sm",
+              "showHeader": true,
+              "sortBy": [
+                {
+                  "desc": true,
+                  "displayName": "경과"
+                }
+              ]
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-32": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${datasource}"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "time() - airflow_observer_dag_last_completed_end_timestamp_seconds{host=~\"$host\",dag_id=~\"$dag_id\"}",
+                      "format": "table",
+                      "instant": true
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": [
+              {
+                "group": "organize",
+                "kind": "Transformation",
+                "spec": {
+                  "options": {
+                    "excludeByName": {
+                      "Time": true,
+                      "__name__": true
+                    },
+                    "renameByName": {
+                      "Value": "완료 후 경과",
+                      "dag_id": "DAG",
+                      "host": "서버",
+                      "state": "상태"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "description": "DAG별 가장 최근 완료 실행의 성공/실패와 종료 후 지난 시간(초). 현재 실행과 별개이며, DAG가 아직 한 번도 완료되지 않았다면 행이 없다. 데이터 없음은 상태 수집 실패와 구별한다.",
+        "id": 32,
+        "links": [],
+        "title": "DAG별 직전 완료 결과 · 신선도",
+        "vizConfig": {
+          "group": "table",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "custom": {
+                  "align": "auto",
+                  "cellOptions": {
+                    "type": "auto"
+                  },
+                  "footer": {
+                    "reducers": []
+                  },
+                  "inspect": false
+                },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                }
+              },
+              "overrides": [
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "완료 후 경과"
+                  },
+                  "properties": [
+                    {
+                      "id": "unit",
+                      "value": "s"
+                    },
+                    {
+                      "id": "decimals",
+                      "value": 0
+                    },
+                    {
+                      "id": "custom.width",
+                      "value": 50
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "상태"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.cellOptions",
+                      "value": {
+                        "type": "color-text"
+                      }
+                    },
+                    {
+                      "id": "mappings",
+                      "value": [
+                        {
+                          "options": {
+                            "failed": {
+                              "color": "red",
+                              "text": "실패"
+                            },
+                            "success": {
+                              "color": "green",
+                              "text": "성공"
+                            }
+                          },
+                          "type": "value"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "custom.width",
+                      "value": 50
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "job"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.width",
+                      "value": 152
+                    }
+                  ]
+                }
+              ]
+            },
+            "options": {
+              "cellHeight": "sm",
+              "showHeader": true,
+              "sortBy": [
+                {
+                  "desc": true,
+                  "displayName": "완료 후 경과"
+                }
+              ]
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-4": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${datasource}"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "airflow_dagrun_duration_failed{dag_id=~\"$dag_id\",host=~\"$host\",quantile=\"0.5\"}",
+                      "legendFormat": "{{host}} / {{dag_id}}"
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "완료된 실패 DAG 실행시간의 StatsD p50 추세. 현재 실패 여부나 현재 실행 경과를 뜻하지 않는다. 원본 timer 단위는 운영 메트릭과 대조 전이다.",
+        "id": 4,
+        "links": [],
+        "title": "실패 DAG 소요 p50 (과거 집계)",
+        "vizConfig": {
+          "group": "timeseries",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "axisBorderShow": false,
+                  "axisCenteredZero": false,
+                  "axisColorMode": "text",
+                  "axisLabel": "",
+                  "axisPlacement": "auto",
+                  "barAlignment": 0,
+                  "barWidthFactor": 0.6,
+                  "drawStyle": "line",
+                  "fillOpacity": 10,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "viz": false
+                  },
+                  "insertNulls": false,
+                  "lineInterpolation": "linear",
+                  "lineWidth": 1,
+                  "pointSize": 5,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "showPoints": "auto",
+                  "showValues": false,
+                  "spanNulls": false,
+                  "stacking": {
+                    "group": "A",
+                    "mode": "none"
+                  },
+                  "thresholdsStyle": {
+                    "mode": "off"
+                  }
+                },
+                "links": [
+                  {
+                    "targetBlank": true,
+                    "title": "Loki — DAG 로그 보기",
+                    "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\",dag_id=\\\"${__field.labels.dag_id}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}"
+                  }
+                ],
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                },
+                "unit": "none"
+              },
+              "overrides": []
+            },
+            "options": {
+              "annotations": {
+                "clustering": -1,
+                "multiLane": false
+              },
+              "legend": {
+                "calcs": [],
+                "displayMode": "list",
+                "placement": "bottom",
+                "showLegend": true
+              },
+              "tooltip": {
+                "hideZeros": false,
+                "mode": "multi",
+                "sort": "none"
+              }
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-5": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${datasource}"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "airflow_task_duration{dag_id=~\"$dag_id\",host=~\"$host\",quantile=\"0.5\"}",
+                      "legendFormat": "{{host}} / {{dag_id}} / {{task_id}}"
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "완료된 태스크 실행시간의 StatsD p50 추세(dag_id/task_id별). 현재 실행 중인 태스크의 경과시간이 아니다. 원본 timer 단위는 운영 메트릭과 대조 전이다.",
+        "id": 5,
+        "links": [],
+        "title": "태스크 소요 p50 (과거 집계)",
+        "vizConfig": {
+          "group": "timeseries",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "axisBorderShow": false,
+                  "axisCenteredZero": false,
+                  "axisColorMode": "text",
+                  "axisLabel": "",
+                  "axisPlacement": "auto",
+                  "barAlignment": 0,
+                  "barWidthFactor": 0.6,
+                  "drawStyle": "line",
+                  "fillOpacity": 10,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "viz": false
+                  },
+                  "insertNulls": false,
+                  "lineInterpolation": "linear",
+                  "lineWidth": 1,
+                  "pointSize": 5,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "showPoints": "auto",
+                  "showValues": false,
+                  "spanNulls": false,
+                  "stacking": {
+                    "group": "A",
+                    "mode": "none"
+                  },
+                  "thresholdsStyle": {
+                    "mode": "off"
+                  }
+                },
+                "links": [
+                  {
+                    "targetBlank": true,
+                    "title": "Loki — 태스크 로그 보기",
+                    "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\",dag_id=\\\"${__field.labels.dag_id}\\\",task_id=\\\"${__field.labels.task_id}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}"
+                  }
+                ],
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                },
+                "unit": "none"
+              },
+              "overrides": []
+            },
+            "options": {
+              "annotations": {
+                "clustering": -1,
+                "multiLane": false
+              },
+              "legend": {
+                "calcs": [],
+                "displayMode": "list",
+                "placement": "bottom",
+                "showLegend": true
+              },
+              "tooltip": {
+                "hideZeros": false,
+                "mode": "multi",
+                "sort": "none"
+              }
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-7": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${datasource}"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "100 - (avg by (host) (irate(node_cpu_seconds_total{job=\"airflow-node\",host=~\"$host\",mode=\"idle\"}[5m])) * 100)",
+                      "legendFormat": "CPU % · {{host}}"
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "",
+        "id": 7,
+        "links": [],
+        "title": "CPU 사용률",
+        "vizConfig": {
+          "group": "timeseries",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "axisBorderShow": false,
+                  "axisCenteredZero": false,
+                  "axisColorMode": "text",
+                  "axisLabel": "",
+                  "axisPlacement": "auto",
+                  "barAlignment": 0,
+                  "barWidthFactor": 0.6,
+                  "drawStyle": "line",
+                  "fillOpacity": 10,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "viz": false
+                  },
+                  "insertNulls": false,
+                  "lineInterpolation": "linear",
+                  "lineWidth": 1,
+                  "pointSize": 5,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "showPoints": "auto",
+                  "showValues": false,
+                  "spanNulls": false,
+                  "stacking": {
+                    "group": "A",
+                    "mode": "none"
+                  },
+                  "thresholdsStyle": {
+                    "mode": "off"
+                  }
+                },
+                "links": [
+                  {
+                    "targetBlank": true,
+                    "title": "Loki — 서버 로그 보기",
+                    "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}"
+                  }
+                ],
+                "max": 100,
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                },
+                "unit": "percent"
+              },
+              "overrides": []
+            },
+            "options": {
+              "annotations": {
+                "clustering": -1,
+                "multiLane": false
+              },
+              "legend": {
+                "calcs": [],
+                "displayMode": "list",
+                "placement": "bottom",
+                "showLegend": true
+              },
+              "tooltip": {
+                "hideZeros": false,
+                "mode": "single",
+                "sort": "none"
+              }
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-8": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${datasource}"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "(1 - node_memory_MemAvailable_bytes{job=\"airflow-node\",host=~\"$host\"} / node_memory_MemTotal_bytes{job=\"airflow-node\",host=~\"$host\"}) * 100",
+                      "legendFormat": "Memory % · {{host}}"
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "",
+        "id": 8,
+        "links": [],
+        "title": "메모리 사용률",
+        "vizConfig": {
+          "group": "timeseries",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "axisBorderShow": false,
+                  "axisCenteredZero": false,
+                  "axisColorMode": "text",
+                  "axisLabel": "",
+                  "axisPlacement": "auto",
+                  "barAlignment": 0,
+                  "barWidthFactor": 0.6,
+                  "drawStyle": "line",
+                  "fillOpacity": 10,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "viz": false
+                  },
+                  "insertNulls": false,
+                  "lineInterpolation": "linear",
+                  "lineWidth": 1,
+                  "pointSize": 5,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "showPoints": "auto",
+                  "showValues": false,
+                  "spanNulls": false,
+                  "stacking": {
+                    "group": "A",
+                    "mode": "none"
+                  },
+                  "thresholdsStyle": {
+                    "mode": "off"
+                  }
+                },
+                "links": [
+                  {
+                    "targetBlank": true,
+                    "title": "Loki — 서버 로그 보기",
+                    "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",host=\\\"${__field.labels.host}\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}"
+                  }
+                ],
+                "max": 100,
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                },
+                "unit": "percent"
+              },
+              "overrides": []
+            },
+            "options": {
+              "annotations": {
+                "clustering": -1,
+                "multiLane": false
+              },
+              "legend": {
+                "calcs": [],
+                "displayMode": "list",
+                "placement": "bottom",
+                "showLegend": true
+              },
+              "tooltip": {
+                "hideZeros": false,
+                "mode": "single",
+                "sort": "none"
+              }
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-9": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${datasource}"
+                    },
+                    "group": "prometheus",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "100 - (node_filesystem_avail_bytes{job=\"airflow-node\",host=~\"$host\",mountpoint=\"/\"} / node_filesystem_size_bytes{job=\"airflow-node\",host=~\"$host\",mountpoint=\"/\"} * 100)",
+                      "legendFormat": "Disk % · {{host}}"
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "",
+        "id": 9,
+        "links": [],
+        "title": "디스크 사용률",
+        "vizConfig": {
+          "group": "stat",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "max": 100,
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 70
+                    },
+                    {
+                      "color": "red",
+                      "value": 90
+                    }
+                  ]
+                },
+                "unit": "percent"
+              },
+              "overrides": []
+            },
+            "options": {
+              "colorMode": "background",
+              "graphMode": "none",
+              "justifyMode": "auto",
+              "orientation": "auto",
+              "percentChangeColorMode": "standard",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ],
+                "fields": "",
+                "values": false
+              },
+              "showPercentChange": false,
+              "textMode": "auto",
+              "wideLayout": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    }
+  },
+  "layout": {
+    "kind": "RowsLayout",
+    "spec": {
+      "rows": [
+        {
+          "kind": "RowsLayoutRow",
+          "spec": {
+            "collapse": false,
+            "layout": {
+              "kind": "GridLayout",
+              "spec": {
+                "items": [
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-12"
+                      },
+                      "height": 4,
+                      "width": 4,
+                      "x": 0,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-13"
+                      },
+                      "height": 4,
+                      "width": 4,
+                      "x": 4,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-16"
+                      },
+                      "height": 8,
+                      "width": 16,
+                      "x": 8,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-14"
+                      },
+                      "height": 4,
+                      "width": 4,
+                      "x": 0,
+                      "y": 4
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-15"
+                      },
+                      "height": 4,
+                      "width": 4,
+                      "x": 4,
+                      "y": 4
+                    }
+                  }
+                ]
+              }
+            },
+            "title": "실행량 · 대기 (기존 StatsD 집계)"
+          }
+        },
+        {
+          "kind": "RowsLayoutRow",
+          "spec": {
+            "collapse": false,
+            "layout": {
+              "kind": "GridLayout",
+              "spec": {
+                "items": [
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-27"
+                      },
+                      "height": 6,
+                      "width": 4,
+                      "x": 0,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-28"
+                      },
+                      "height": 6,
+                      "width": 4,
+                      "x": 4,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-29"
+                      },
+                      "height": 6,
+                      "width": 4,
+                      "x": 8,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-32"
+                      },
+                      "height": 6,
+                      "width": 12,
+                      "x": 12,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-30"
+                      },
+                      "height": 5,
+                      "width": 24,
+                      "x": 0,
+                      "y": 6
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-31"
+                      },
+                      "height": 5,
+                      "width": 24,
+                      "x": 0,
+                      "y": 11
+                    }
+                  }
+                ]
+              }
+            },
+            "title": "현재 DAG · 태스크 (호스트별 exporter 실측)"
+          }
+        },
+        {
+          "kind": "RowsLayoutRow",
+          "spec": {
+            "collapse": false,
+            "layout": {
+              "kind": "GridLayout",
+              "spec": {
+                "items": [
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-2"
+                      },
+                      "height": 4,
+                      "width": 4,
+                      "x": 0,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-3"
+                      },
+                      "height": 4,
+                      "width": 10,
+                      "x": 4,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-4"
+                      },
+                      "height": 4,
+                      "width": 10,
+                      "x": 14,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-5"
+                      },
+                      "height": 6,
+                      "width": 24,
+                      "x": 0,
+                      "y": 4
+                    }
+                  }
+                ]
+              }
+            },
+            "title": "스케줄러 신호 · 종료 실행시간 추세 (현재 실행 경과 아님)"
+          }
+        },
+        {
+          "kind": "RowsLayoutRow",
+          "spec": {
+            "collapse": false,
+            "layout": {
+              "kind": "GridLayout",
+              "spec": {
+                "items": [
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-18"
+                      },
+                      "height": 6,
+                      "width": 12,
+                      "x": 0,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-19"
+                      },
+                      "height": 6,
+                      "width": 8,
+                      "x": 12,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-20"
+                      },
+                      "height": 6,
+                      "width": 4,
+                      "x": 20,
+                      "y": 0
+                    }
+                  }
+                ]
+              }
+            },
+            "title": "태스크 성공 / 실패"
+          }
+        },
+        {
+          "kind": "RowsLayoutRow",
+          "spec": {
+            "collapse": false,
+            "layout": {
+              "kind": "GridLayout",
+              "spec": {
+                "items": [
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-22"
+                      },
+                      "height": 6,
+                      "width": 12,
+                      "x": 0,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-23"
+                      },
+                      "height": 6,
+                      "width": 12,
+                      "x": 12,
+                      "y": 0
+                    }
+                  }
+                ]
+              }
+            },
+            "title": "스케줄러 건강"
+          }
+        },
+        {
+          "kind": "RowsLayoutRow",
+          "spec": {
+            "collapse": false,
+            "layout": {
+              "kind": "GridLayout",
+              "spec": {
+                "items": [
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-7"
+                      },
+                      "height": 6,
+                      "width": 12,
+                      "x": 0,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-8"
+                      },
+                      "height": 6,
+                      "width": 12,
+                      "x": 12,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-9"
+                      },
+                      "height": 4,
+                      "width": 6,
+                      "x": 0,
+                      "y": 6
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-10"
+                      },
+                      "height": 4,
+                      "width": 18,
+                      "x": 6,
+                      "y": 6
+                    }
+                  }
+                ]
+              }
+            },
+            "title": "시스템 리소스"
+          }
+        },
+        {
+          "kind": "RowsLayoutRow",
+          "spec": {
+            "collapse": false,
+            "layout": {
+              "kind": "GridLayout",
+              "spec": {
+                "items": [
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-25"
+                      },
+                      "height": 10,
+                      "width": 24,
+                      "x": 0,
+                      "y": 0
+                    }
+                  }
+                ]
+              }
+            },
+            "title": "로그 (Loki)"
+          }
+        }
+      ]
+    }
+  },
+  "links": [],
+  "liveNow": false,
+  "preload": false,
+  "tags": [],
+  "timeSettings": {
+    "autoRefresh": "30s",
+    "autoRefreshIntervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ],
+    "fiscalYearStartMonth": 0,
+    "from": "now-1h",
+    "hideTimepicker": false,
+    "timezone": "browser",
+    "to": "now"
+  },
+  "title": "Airflow 모니터링",
+  "variables": [
+    {
+      "kind": "DatasourceVariable",
+      "spec": {
+        "allowCustomValue": true,
+        "current": {
+          "text": "prometheus",
+          "value": "cfltz3i4tlfr4e"
+        },
+        "hide": "dontHide",
+        "includeAll": false,
+        "label": "Data Source",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "pluginId": "prometheus",
+        "refresh": "onDashboardLoad",
+        "regex": "",
+        "skipUrlSync": false
+      }
+    },
+    {
+      "kind": "DatasourceVariable",
+      "spec": {
+        "allowCustomValue": true,
+        "current": {
+          "text": "Loki",
+          "value": "cfp3bjqtnftvkf"
+        },
+        "hide": "dontHide",
+        "includeAll": false,
+        "label": "Loki",
+        "multi": false,
+        "name": "loki_datasource",
+        "options": [],
+        "pluginId": "loki",
+        "refresh": "onDashboardLoad",
+        "regex": "",
+        "skipUrlSync": false
+      }
+    },
+    {
+      "kind": "QueryVariable",
+      "spec": {
+        "allValue": ".+",
+        "allowCustomValue": true,
+        "current": {
+          "text": "All",
+          "value": [
+            "$__all"
+          ]
+        },
+        "definition": "label_values(up{job=\"airflow-node\"}, host)",
+        "hide": "dontHide",
+        "includeAll": true,
+        "label": "서버",
+        "multi": true,
+        "name": "host",
+        "options": [],
+        "query": {
+          "datasource": {
+            "name": "${datasource}"
+          },
+          "group": "prometheus",
+          "kind": "DataQuery",
+          "spec": {
+            "query": "label_values(up{job=\"airflow-node\"}, host)",
+            "refId": "StandardVariableQuery"
+          },
+          "version": "v0"
+        },
+        "refresh": "onTimeRangeChanged",
+        "regex": "",
+        "regexApplyTo": "value",
+        "skipUrlSync": false,
+        "sort": "alphabeticalAsc"
+      }
+    },
+    {
+      "kind": "QueryVariable",
+      "spec": {
+        "allValue": ".+",
+        "allowCustomValue": true,
+        "current": {
+          "text": "All",
+          "value": [
+            "$__all"
+          ]
+        },
+        "definition": "label_values({__name__=~\"airflow_dagrun_duration_(success|failed)|airflow_observer_dag_known\",host=~\"$host\"}, dag_id)",
+        "hide": "dontHide",
+        "includeAll": true,
+        "label": "DAG",
+        "multi": true,
+        "name": "dag_id",
+        "options": [],
+        "query": {
+          "datasource": {
+            "name": "${datasource}"
+          },
+          "group": "prometheus",
+          "kind": "DataQuery",
+          "spec": {
+            "query": "label_values({__name__=~\"airflow_dagrun_duration_(success|failed)|airflow_observer_dag_known\",host=~\"$host\"}, dag_id)",
+            "refId": "StandardVariableQuery"
+          },
+          "version": "v0"
+        },
+        "refresh": "onTimeRangeChanged",
+        "regex": "",
+        "regexApplyTo": "value",
+        "skipUrlSync": false,
+        "sort": "alphabeticalAsc"
+      }
+    }
+  ]
 }
