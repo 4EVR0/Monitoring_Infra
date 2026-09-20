@@ -1,1976 +1,3137 @@
 {
-  "title": "Oliveyoung 데이터 정합성 (테이블 소스)",
-  "uid": "oliveyoung-dq-table",
-  "schemaVersion": 38,
-  "version": 5,
-  "refresh": "5m",
-  "time": {
-    "from": "now-30d",
-    "to": "now"
-  },
-  "timezone": "browser",
-  "panels": [
+  "annotations": [
     {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 0
-      },
-      "id": 100,
-      "title": "선택 기간의 최신 DQ 기록 (단계별 실행)",
-      "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "yesoreyeram-infinity-datasource",
-        "uid": "${dq_datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "unit": "percentunit",
-          "min": 0,
-          "max": 1,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 0.85
-              },
-              {
-                "color": "green",
-                "value": 0.95
-              }
-            ]
-          },
-          "links": [
-            {
-              "title": "🔎 Iceberg UI 드릴다운",
-              "url": "${iceberg_ui_url}/?view=drilldown&metric=category_success_count&catalog=oliveyoung_db&table=oliveyoung_silver_current&snapshot_mode=latest",
-              "targetBlank": true
-            },
-            {
-              "title": "📜 Loki 로그 보기",
-              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"silver_to_gold\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
-              "targetBlank": true
-            }
-          ]
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 0,
-        "y": 1
-      },
-      "id": 101,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        }
-      },
-      "description": "최신 silver→gold INCI 매핑률. 초록 ≥0.95 / 노랑 ≥0.85 / 빨강 그 미만. ⚠️ 백필은 bronze→silver만 실행하고 crawl·gold는 절대 건드리지 않아, 이 지표는 백필과 무관(N/A)하다.",
-      "title": "INCI 매핑률",
-      "targets": [
-        {
+      "kind": "AnnotationQuery",
+      "spec": {
+        "builtIn": true,
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "query": {
           "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "${dq_datasource}"
+            "name": "-- Grafana --"
           },
-          "refId": "A",
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "${dq_api_url}/dq/latest?stage=silver_to_gold&metric=match_rate&from=${__from}&to=${__to}",
-          "url_options": {
-            "method": "GET"
-          },
-          "root_selector": "",
-          "columns": [
-            {
-              "selector": "metric_value",
-              "text": "value",
-              "type": "number"
-            }
-          ]
+          "group": "grafana",
+          "kind": "DataQuery",
+          "spec": {},
+          "version": "v0"
         }
-      ],
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "yesoreyeram-infinity-datasource",
-        "uid": "${dq_datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "blue"
-          },
-          "unit": "percentunit",
-          "min": 0,
-          "max": 1,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "blue",
-                "value": null
-              }
-            ]
-          },
-          "links": [
-            {
-              "title": "🔎 Iceberg UI 드릴다운",
-              "url": "${iceberg_ui_url}/?view=drilldown&metric=category_failure&catalog=oliveyoung_db&table=oliveyoung_silver_error&snapshot_mode=latest",
-              "targetBlank": true
-            },
-            {
-              "title": "📜 Loki 로그 보기",
-              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"bronze_to_silver\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
-              "targetBlank": true
-            }
-          ]
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 6,
-        "y": 1
-      },
-      "id": 102,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        }
-      },
-      "description": "기존 error_rate = 오류 레코드/(정상 출력 행+오류 레코드). Silver에 적재되는 상품의 잔여 성분 경고도 오류에 포함될 수 있어 상품 제외율이나 적재 실패율이 아니다. 분모도 중복될 수 있으므로 임계 판정 대신 추이 참고용으로만 사용한다.",
-      "title": "오류 레코드 비중 (정상, 참고)",
-      "targets": [
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "${dq_datasource}"
-          },
-          "refId": "A",
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "${dq_api_url}/dq/latest?stage=bronze_to_silver&metric=error_rate&from=${__from}&to=${__to}",
-          "url_options": {
-            "method": "GET"
-          },
-          "root_selector": "",
-          "columns": [
-            {
-              "selector": "metric_value",
-              "text": "value",
-              "type": "number"
-            }
-          ]
-        }
-      ],
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "yesoreyeram-infinity-datasource",
-        "uid": "${dq_datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "unit": "short",
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 1
-              }
-            ]
-          },
-          "links": [
-            {
-              "title": "🔎 Iceberg UI 드릴다운",
-              "url": "${iceberg_ui_url}/?view=drilldown&metric=category_failure&catalog=oliveyoung_db&table=oliveyoung_silver_error&snapshot_mode=latest",
-              "targetBlank": true
-            },
-            {
-              "title": "📜 Loki 로그 보기",
-              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"crawl\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
-              "targetBlank": true
-            }
-          ]
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 12,
-        "y": 1
-      },
-      "id": 103,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        }
-      },
-      "description": "최신 크롤에서 기록된 카테고리 이동 실패 수. 일반 예외·0건·재개 시 건너뛴 카테고리는 포함하지 않으므로 0이 전체 수집 성공을 뜻하지는 않는다. ⚠️ 백필은 bronze→silver만 실행하고 crawl·gold는 절대 건드리지 않아, 이 지표는 백필과 무관(N/A)하다.",
-      "title": "카테고리 이동 실패",
-      "targets": [
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "${dq_datasource}"
-          },
-          "refId": "A",
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "${dq_api_url}/dq/latest?stage=crawl&metric=categories_failed&from=${__from}&to=${__to}",
-          "url_options": {
-            "method": "GET"
-          },
-          "root_selector": "",
-          "columns": [
-            {
-              "selector": "metric_value",
-              "text": "value",
-              "type": "number"
-            }
-          ]
-        }
-      ],
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "yesoreyeram-infinity-datasource",
-        "uid": "${dq_datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "unit": "short",
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 1
-              }
-            ]
-          },
-          "links": [
-            {
-              "title": "🔎 Iceberg UI 드릴다운",
-              "url": "${iceberg_ui_url}/?view=drilldown&metric=category_success_count&catalog=oliveyoung_db&table=oliveyoung_silver_current&snapshot_mode=latest",
-              "targetBlank": true
-            },
-            {
-              "title": "📜 Loki 로그 보기",
-              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"crawl\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
-              "targetBlank": true
-            }
-          ]
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 18,
-        "y": 1
-      },
-      "id": 104,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        }
-      },
-      "description": "최신 크롤에서 방문 후 상품 0건으로 기록된 카테고리 수. 재개 과정에서 건너뛴 카테고리와는 별개이며, 1 이상이면 원인 확인이 필요하다. ⚠️ 백필은 bronze→silver만 실행하고 crawl·gold는 절대 건드리지 않아, 이 지표는 백필과 무관(N/A)하다.",
-      "title": "카테고리 0건",
-      "targets": [
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "${dq_datasource}"
-          },
-          "refId": "A",
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "${dq_api_url}/dq/latest?stage=crawl&metric=categories_zero&from=${__from}&to=${__to}",
-          "url_options": {
-            "method": "GET"
-          },
-          "root_selector": "",
-          "columns": [
-            {
-              "selector": "metric_value",
-              "text": "value",
-              "type": "number"
-            }
-          ]
-        }
-      ],
-      "type": "stat"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 5
-      },
-      "id": 1,
-      "title": "매핑 품질 (silver→gold)",
-      "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "yesoreyeram-infinity-datasource",
-        "uid": "${dq_datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "showPoints": "always",
-            "pointSize": 6,
-            "spanNulls": true,
-            "fillOpacity": 0,
-            "thresholdsStyle": {
-              "mode": "line"
-            }
-          },
-          "unit": "percentunit",
-          "min": 0,
-          "max": 1,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 0.85
-              },
-              {
-                "color": "green",
-                "value": 0.95
-              }
-            ]
-          },
-          "links": [
-            {
-              "title": "🔎 Iceberg UI 드릴다운",
-              "url": "${iceberg_ui_url}/?view=drilldown&metric=category_success_count&catalog=oliveyoung_db&table=oliveyoung_silver_current&snapshot_mode=latest&batch_date=${__data.fields.batch_date}",
-              "targetBlank": true
-            },
-            {
-              "title": "📜 Loki 로그 보기",
-              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"silver_to_gold\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
-              "targetBlank": true
-            }
-          ]
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 6
-      },
-      "id": 2,
-      "options": {
-        "tooltip": {
-          "mode": "multi"
-        },
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
-      },
-      "description": "silver→gold 단계 INCI 매핑률. 실행마다 한 점. 급락 시 성분 사전/소스 변동 의심.",
-      "title": "INCI 매핑률 (silver→gold)",
-      "targets": [
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "${dq_datasource}"
-          },
-          "refId": "A",
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "${dq_api_url}/dq/series?stage=silver_to_gold&metric=match_rate&from=${__from}&to=${__to}",
-          "url_options": {
-            "method": "GET"
-          },
-          "root_selector": "",
-          "columns": [
-            {
-              "selector": "created_at",
-              "text": "time",
-              "type": "timestamp"
-            },
-            {
-              "selector": "metric_value",
-              "text": "match_rate",
-              "type": "number"
-            },
-            {
-              "selector": "batch_date",
-              "text": "batch_date",
-              "type": "string"
-            }
-          ]
-        }
-      ],
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "yesoreyeram-infinity-datasource",
-        "uid": "${dq_datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "showPoints": "always",
-            "pointSize": 6,
-            "spanNulls": true,
-            "fillOpacity": 0
-          },
-          "unit": "short",
-          "min": 0,
-          "links": [
-            {
-              "title": "🔎 Iceberg UI 드릴다운",
-              "url": "${iceberg_ui_url}/?view=drilldown&metric=category_success_count&catalog=oliveyoung_db&table=oliveyoung_silver_current&snapshot_mode=latest&batch_date=${__data.fields.batch_date}",
-              "targetBlank": true
-            },
-            {
-              "title": "📜 Loki 로그 보기",
-              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"silver_to_gold\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
-              "targetBlank": true
-            }
-          ]
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 6
-      },
-      "id": 3,
-      "options": {
-        "tooltip": {
-          "mode": "multi"
-        },
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
-      },
-      "description": "unique 성분 대비 INCI 매핑 성공/실패 건수.",
-      "title": "성분 매핑 건수 (silver→gold)",
-      "targets": [
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "${dq_datasource}"
-          },
-          "refId": "A",
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "${dq_api_url}/dq/series?stage=silver_to_gold&metric=ingredients_unique&from=${__from}&to=${__to}",
-          "url_options": {
-            "method": "GET"
-          },
-          "root_selector": "",
-          "columns": [
-            {
-              "selector": "created_at",
-              "text": "time",
-              "type": "timestamp"
-            },
-            {
-              "selector": "metric_value",
-              "text": "unique",
-              "type": "number"
-            },
-            {
-              "selector": "batch_date",
-              "text": "batch_date",
-              "type": "string"
-            }
-          ]
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "${dq_datasource}"
-          },
-          "refId": "B",
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "${dq_api_url}/dq/series?stage=silver_to_gold&metric=ingredients_matched&from=${__from}&to=${__to}",
-          "url_options": {
-            "method": "GET"
-          },
-          "root_selector": "",
-          "columns": [
-            {
-              "selector": "created_at",
-              "text": "time",
-              "type": "timestamp"
-            },
-            {
-              "selector": "metric_value",
-              "text": "matched",
-              "type": "number"
-            },
-            {
-              "selector": "batch_date",
-              "text": "batch_date",
-              "type": "string"
-            }
-          ]
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "${dq_datasource}"
-          },
-          "refId": "C",
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "${dq_api_url}/dq/series?stage=silver_to_gold&metric=ingredients_unmatched&from=${__from}&to=${__to}",
-          "url_options": {
-            "method": "GET"
-          },
-          "root_selector": "",
-          "columns": [
-            {
-              "selector": "created_at",
-              "text": "time",
-              "type": "timestamp"
-            },
-            {
-              "selector": "metric_value",
-              "text": "unmatched",
-              "type": "number"
-            },
-            {
-              "selector": "batch_date",
-              "text": "batch_date",
-              "type": "string"
-            }
-          ]
-        }
-      ],
-      "type": "timeseries"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 14
-      },
-      "id": 4,
-      "title": "전처리 계산 결과 (bronze→silver)",
-      "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "yesoreyeram-infinity-datasource",
-        "uid": "${dq_datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "showPoints": "always",
-            "pointSize": 6,
-            "spanNulls": true,
-            "fillOpacity": 0
-          },
-          "unit": "short",
-          "min": 0,
-          "links": [
-            {
-              "title": "🔎 Iceberg UI 드릴다운",
-              "url": "${iceberg_ui_url}/?view=drilldown&metric=category_failure&catalog=oliveyoung_db&table=oliveyoung_silver_error&snapshot_mode=latest&batch_date=${__data.fields.batch_date}",
-              "targetBlank": true
-            },
-            {
-              "title": "📜 Loki 로그 보기",
-              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"bronze_to_silver\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
-              "targetBlank": true
-            }
-          ]
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 15
-      },
-      "id": 5,
-      "options": {
-        "tooltip": {
-          "mode": "multi"
-        },
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
-      },
-      "description": "입력 행, 정상 출력 행, 오류 레코드의 실행별 계산값. 한 상품의 정상 출력과 잔여 성분 경고가 겹칠 수 있으므로 정상+오류=입력이라는 보존식이 성립하지 않는다. Silver 실제 적재 성공을 증명하는 값도 아니다.",
-      "title": "입력·정제·오류 레코드 (계산값)",
-      "targets": [
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "${dq_datasource}"
-          },
-          "refId": "A",
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "${dq_api_url}/dq/series?stage=bronze_to_silver&metric=bronze_loaded&from=${__from}&to=${__to}",
-          "url_options": {
-            "method": "GET"
-          },
-          "root_selector": "",
-          "columns": [
-            {
-              "selector": "created_at",
-              "text": "time",
-              "type": "timestamp"
-            },
-            {
-              "selector": "metric_value",
-              "text": "bronze_loaded",
-              "type": "number"
-            },
-            {
-              "selector": "batch_date",
-              "text": "batch_date",
-              "type": "string"
-            }
-          ]
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "${dq_datasource}"
-          },
-          "refId": "B",
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "${dq_api_url}/dq/series?stage=bronze_to_silver&metric=silver_ok&from=${__from}&to=${__to}",
-          "url_options": {
-            "method": "GET"
-          },
-          "root_selector": "",
-          "columns": [
-            {
-              "selector": "created_at",
-              "text": "time",
-              "type": "timestamp"
-            },
-            {
-              "selector": "metric_value",
-              "text": "silver_ok",
-              "type": "number"
-            },
-            {
-              "selector": "batch_date",
-              "text": "batch_date",
-              "type": "string"
-            }
-          ]
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "${dq_datasource}"
-          },
-          "refId": "C",
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "${dq_api_url}/dq/series?stage=bronze_to_silver&metric=silver_error&from=${__from}&to=${__to}",
-          "url_options": {
-            "method": "GET"
-          },
-          "root_selector": "",
-          "columns": [
-            {
-              "selector": "created_at",
-              "text": "time",
-              "type": "timestamp"
-            },
-            {
-              "selector": "metric_value",
-              "text": "silver_error",
-              "type": "number"
-            },
-            {
-              "selector": "batch_date",
-              "text": "batch_date",
-              "type": "string"
-            }
-          ]
-        }
-      ],
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "yesoreyeram-infinity-datasource",
-        "uid": "${dq_datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "blue"
-          },
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "showPoints": "always",
-            "pointSize": 6,
-            "spanNulls": true,
-            "fillOpacity": 0,
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "unit": "percentunit",
-          "min": 0,
-          "max": 1,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "blue",
-                "value": null
-              }
-            ]
-          },
-          "links": [
-            {
-              "title": "🔎 Iceberg UI 드릴다운",
-              "url": "${iceberg_ui_url}/?view=drilldown&metric=category_failure&catalog=oliveyoung_db&table=oliveyoung_silver_error&snapshot_mode=latest&batch_date=${__data.fields.batch_date}",
-              "targetBlank": true
-            },
-            {
-              "title": "📜 Loki 로그 보기",
-              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"bronze_to_silver\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
-              "targetBlank": true
-            }
-          ]
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 15
-      },
-      "id": 6,
-      "options": {
-        "tooltip": {
-          "mode": "multi"
-        },
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
-      },
-      "description": "기존 error_rate의 실행별 추이. 오류에는 정상 적재와 겹치는 잔여 성분 경고가 포함될 수 있다. 상품 실패율이 아니며 아직 운영 임계값을 확정하지 않았다.",
-      "title": "오류 레코드 비중 추이 (참고)",
-      "targets": [
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "${dq_datasource}"
-          },
-          "refId": "A",
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "${dq_api_url}/dq/series?stage=bronze_to_silver&metric=error_rate&from=${__from}&to=${__to}",
-          "url_options": {
-            "method": "GET"
-          },
-          "root_selector": "",
-          "columns": [
-            {
-              "selector": "created_at",
-              "text": "time",
-              "type": "timestamp"
-            },
-            {
-              "selector": "metric_value",
-              "text": "error_rate",
-              "type": "number"
-            },
-            {
-              "selector": "batch_date",
-              "text": "batch_date",
-              "type": "string"
-            }
-          ]
-        }
-      ],
-      "type": "timeseries"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 23
-      },
-      "id": 109,
-      "title": "전처리 오류 유형 · 선택 기간의 최신 실행 (정상)",
-      "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "yesoreyeram-infinity-datasource",
-        "uid": "${dq_datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "unit": "short",
-          "min": 0,
-          "custom": {
-            "axisPlacement": "auto",
-            "fillOpacity": 80,
-            "lineWidth": 1
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "class"
-            },
-            "properties": [
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "rejected": {
-                        "text": "제외",
-                        "color": "red"
-                      },
-                      "residual": {
-                        "text": "잔여 성분",
-                        "color": "blue"
-                      },
-                      "unclassified": {
-                        "text": "미분류",
-                        "color": "orange"
-                      },
-                      "other": {
-                        "text": "기타",
-                        "color": "purple"
-                      }
-                    }
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 17,
-        "x": 0,
-        "y": 24
-      },
-      "id": 105,
-      "options": {
-        "orientation": "horizontal",
-        "xField": "error_type",
-        "colorByField": "class",
-        "showValue": "always",
-        "barWidth": 0.7,
-        "groupWidth": 0.7,
-        "stacking": "none",
-        "tooltip": {
-          "mode": "single"
-        },
-        "legend": {
-          "displayMode": "hidden"
-        }
-      },
-      "description": "선택 기간에 기록된 최신 bronze→silver 실행(created_at 기준)의 오류 레코드 건수. REJECTED는 제외 유형, UNMAPPED_RESIDUAL은 정상 적재와 겹칠 수도 있는 잔여 성분이다. 상품 수가 아니며, 오른쪽 집계 상태가 정상일 때만 막대가 표시된다. 신규 유형은 자동으로 추가된다.",
-      "title": "오류 유형별 레코드 건수",
-      "targets": [
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "${dq_datasource}"
-          },
-          "refId": "A",
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "${dq_api_url}/dq/error-types?stage=bronze_to_silver&from=${__from}&to=${__to}",
-          "url_options": {
-            "method": "GET"
-          },
-          "root_selector": "rows",
-          "columns": [
-            {
-              "selector": "error_type",
-              "text": "error_type",
-              "type": "string"
-            },
-            {
-              "selector": "count",
-              "text": "count",
-              "type": "number"
-            },
-            {
-              "selector": "class",
-              "text": "class",
-              "type": "string"
-            }
-          ]
-        }
-      ],
-      "type": "barchart"
-    },
-    {
-      "datasource": {
-        "type": "yesoreyeram-infinity-datasource",
-        "uid": "${dq_datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "ok": {
-                  "text": "집계 정상",
-                  "color": "green"
-                },
-                "no_breakdown": {
-                  "text": "유형별 자료 없음",
-                  "color": "yellow"
-                },
-                "incomplete": {
-                  "text": "집계 불완전",
-                  "color": "red"
-                },
-                "no_data_in_range": {
-                  "text": "선택 기간에 실행 없음",
-                  "color": "blue"
-                },
-                "no_data": {
-                  "text": "관측 기록 없음",
-                  "color": "blue"
-                }
-              }
-            }
-          ],
-          "color": {
-            "mode": "thresholds"
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 7,
-        "x": 17,
-        "y": 24
-      },
-      "id": 106,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "textMode": "value",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        }
-      },
-      "description": "ok=유형 합계가 계산된 silver_error와 일치(0건 포함). no_breakdown=구버전 실행 또는 유형별 저장 실패로 구분 불가. incomplete=합계 불일치. 기간 내 실행 없음·API 조회 실패는 각각 별도로 확인한다.",
-      "title": "유형별 집계 상태",
-      "targets": [
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "${dq_datasource}"
-          },
-          "refId": "A",
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "${dq_api_url}/dq/error-types?stage=bronze_to_silver&from=${__from}&to=${__to}",
-          "url_options": {
-            "method": "GET"
-          },
-          "root_selector": "",
-          "columns": [
-            {
-              "selector": "status",
-              "text": "status",
-              "type": "string"
-            }
-          ]
-        }
-      ],
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "yesoreyeram-infinity-datasource",
-        "uid": "${dq_datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "blue"
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 2,
-        "w": 7,
-        "x": 17,
-        "y": 27
-      },
-      "id": 107,
-      "options": {
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "textMode": "value",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        }
-      },
-      "description": "선택된 최신 기록의 batch_date. 최신 판단은 batch_date 최대가 아니라 기록 시각 created_at 기준이므로 재실행·백필 시 과거 배치일 수도 있다.",
-      "title": "관측 배치일",
-      "targets": [
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "${dq_datasource}"
-          },
-          "refId": "A",
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "${dq_api_url}/dq/error-types?stage=bronze_to_silver&from=${__from}&to=${__to}",
-          "url_options": {
-            "method": "GET"
-          },
-          "root_selector": "",
-          "columns": [
-            {
-              "selector": "batch_date",
-              "text": "batch_date",
-              "type": "string"
-            }
-          ]
-        }
-      ],
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "yesoreyeram-infinity-datasource",
-        "uid": "${dq_datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "blue"
-          },
-          "unit": "short",
-          "min": 0
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 7,
-        "x": 17,
-        "y": 29
-      },
-      "id": 108,
-      "options": {
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        }
-      },
-      "description": "silver_error 마커 값: 해당 실행에서 적재 전에 계산한 오류 레코드 수. 실제 Iceberg 적재 성공이나 제외 상품 수가 아니다. 유형별 막대와 합계 비교는 집계 상태에서 판정한다.",
-      "title": "오류 레코드 합계 (계산값)",
-      "targets": [
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "${dq_datasource}"
-          },
-          "refId": "A",
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "${dq_api_url}/dq/error-types?stage=bronze_to_silver&from=${__from}&to=${__to}",
-          "url_options": {
-            "method": "GET"
-          },
-          "root_selector": "",
-          "columns": [
-            {
-              "selector": "silver_error",
-              "text": "silver_error",
-              "type": "number"
-            }
-          ]
-        }
-      ],
-      "type": "stat"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 41
-      },
-      "id": 7,
-      "title": "수집 안정성 (crawl)",
-      "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "yesoreyeram-infinity-datasource",
-        "uid": "${dq_datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "showPoints": "always",
-            "pointSize": 6,
-            "spanNulls": true,
-            "fillOpacity": 0
-          },
-          "unit": "short",
-          "min": 0,
-          "links": [
-            {
-              "title": "🔎 Iceberg UI 드릴다운",
-              "url": "${iceberg_ui_url}/?view=drilldown&metric=ingestion_volume&catalog=oliveyoung_db&table=oliveyoung_silver_current&snapshot_mode=latest&batch_date=${__data.fields.batch_date}",
-              "targetBlank": true
-            },
-            {
-              "title": "📜 Loki 로그 보기",
-              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"crawl\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
-              "targetBlank": true
-            }
-          ]
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 42
-      },
-      "id": 8,
-      "options": {
-        "tooltip": {
-          "mode": "multi"
-        },
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
-      },
-      "description": "크롤 수집 상품 수 추이. 직전 대비 급락이면 크롤 결함 의심. ⚠️ 백필은 bronze→silver만 실행하고 crawl·gold는 절대 건드리지 않아, 이 지표는 백필과 무관(N/A)하다.",
-      "title": "수집 상품 수 (crawl)",
-      "targets": [
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "${dq_datasource}"
-          },
-          "refId": "A",
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "${dq_api_url}/dq/series?stage=crawl&metric=products_total&from=${__from}&to=${__to}",
-          "url_options": {
-            "method": "GET"
-          },
-          "root_selector": "",
-          "columns": [
-            {
-              "selector": "created_at",
-              "text": "time",
-              "type": "timestamp"
-            },
-            {
-              "selector": "metric_value",
-              "text": "products_total",
-              "type": "number"
-            },
-            {
-              "selector": "batch_date",
-              "text": "batch_date",
-              "type": "string"
-            }
-          ]
-        }
-      ],
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "yesoreyeram-infinity-datasource",
-        "uid": "${dq_datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "custom": {
-            "drawStyle": "line",
-            "lineWidth": 2,
-            "showPoints": "always",
-            "pointSize": 6,
-            "spanNulls": true,
-            "fillOpacity": 0,
-            "thresholdsStyle": {
-              "mode": "line"
-            }
-          },
-          "unit": "short",
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 1
-              }
-            ]
-          },
-          "links": [
-            {
-              "title": "🔎 Iceberg UI 드릴다운",
-              "url": "${iceberg_ui_url}/?view=drilldown&metric=category_failure&catalog=oliveyoung_db&table=oliveyoung_silver_error&snapshot_mode=latest&batch_date=${__data.fields.batch_date}",
-              "targetBlank": true
-            },
-            {
-              "title": "📜 Loki 로그 보기",
-              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"crawl\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
-              "targetBlank": true
-            }
-          ]
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 42
-      },
-      "id": 9,
-      "options": {
-        "tooltip": {
-          "mode": "multi"
-        },
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
-      },
-      "description": "이동 실패 / 0건 카테고리 수. >0이면 카테고리 누락 — 거의 항상 크롤 결함 신호. ⚠️ 백필은 bronze→silver만 실행하고 crawl·gold는 절대 건드리지 않아, 이 지표는 백필과 무관(N/A)하다.",
-      "title": "카테고리 실패 / 0건 (crawl)",
-      "targets": [
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "${dq_datasource}"
-          },
-          "refId": "A",
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "${dq_api_url}/dq/series?stage=crawl&metric=categories_failed&from=${__from}&to=${__to}",
-          "url_options": {
-            "method": "GET"
-          },
-          "root_selector": "",
-          "columns": [
-            {
-              "selector": "created_at",
-              "text": "time",
-              "type": "timestamp"
-            },
-            {
-              "selector": "metric_value",
-              "text": "failed",
-              "type": "number"
-            },
-            {
-              "selector": "batch_date",
-              "text": "batch_date",
-              "type": "string"
-            }
-          ]
-        },
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "${dq_datasource}"
-          },
-          "refId": "B",
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "${dq_api_url}/dq/series?stage=crawl&metric=categories_zero&from=${__from}&to=${__to}",
-          "url_options": {
-            "method": "GET"
-          },
-          "root_selector": "",
-          "columns": [
-            {
-              "selector": "created_at",
-              "text": "time",
-              "type": "timestamp"
-            },
-            {
-              "selector": "metric_value",
-              "text": "zero",
-              "type": "number"
-            },
-            {
-              "selector": "batch_date",
-              "text": "batch_date",
-              "type": "string"
-            }
-          ]
-        }
-      ],
-      "type": "timeseries"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 50
-      },
-      "id": 20,
-      "title": "원시 데이터 · 드릴다운 (Iceberg)",
-      "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "yesoreyeram-infinity-datasource",
-        "uid": "${dq_datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "filterable": true
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 10,
-        "w": 24,
-        "x": 0,
-        "y": 51
-      },
-      "id": 21,
-      "options": {
-        "showHeader": true,
-        "sortBy": [
-          {
-            "displayName": "created_at",
-            "desc": true
-          }
-        ]
-      },
-      "description": "dq_metrics 최근 행. Iceberg UI 드릴다운 링크는 팀원 UI가 딥링크(쿼리파람) 지원하면 그때 연결 예정.",
-      "title": "최근 DQ 행 (dq_metrics)",
-      "targets": [
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "${dq_datasource}"
-          },
-          "refId": "A",
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "${dq_api_url}/dq/rows?limit=200&from=${__from}&to=${__to}",
-          "url_options": {
-            "method": "GET"
-          },
-          "root_selector": "",
-          "columns": [
-            {
-              "selector": "created_at",
-              "text": "created_at",
-              "type": "timestamp"
-            },
-            {
-              "selector": "batch_date",
-              "text": "batch_date",
-              "type": "string"
-            },
-            {
-              "selector": "stage",
-              "text": "stage",
-              "type": "string"
-            },
-            {
-              "selector": "metric_name",
-              "text": "metric_name",
-              "type": "string"
-            },
-            {
-              "selector": "metric_value",
-              "text": "metric_value",
-              "type": "number"
-            },
-            {
-              "selector": "target_table",
-              "text": "target_table",
-              "type": "string"
-            }
-          ]
-        }
-      ],
-      "type": "table"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 32
-      },
-      "id": 115,
-      "title": "전처리 오류 유형 · 선택 기간의 최신 실행 (백필)",
-      "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "yesoreyeram-infinity-datasource",
-        "uid": "${dq_datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "unit": "short",
-          "min": 0,
-          "custom": {
-            "axisPlacement": "auto",
-            "fillOpacity": 80,
-            "lineWidth": 1
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "class"
-            },
-            "properties": [
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "rejected": {
-                        "text": "제외",
-                        "color": "red"
-                      },
-                      "residual": {
-                        "text": "잔여 성분",
-                        "color": "blue"
-                      },
-                      "unclassified": {
-                        "text": "미분류",
-                        "color": "orange"
-                      },
-                      "other": {
-                        "text": "기타",
-                        "color": "purple"
-                      }
-                    }
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 17,
-        "x": 0,
-        "y": 33
-      },
-      "id": 116,
-      "options": {
-        "orientation": "horizontal",
-        "xField": "error_type",
-        "colorByField": "class",
-        "showValue": "always",
-        "barWidth": 0.7,
-        "groupWidth": 0.7,
-        "stacking": "none",
-        "tooltip": {
-          "mode": "single"
-        },
-        "legend": {
-          "displayMode": "hidden"
-        }
-      },
-      "description": "선택 기간에 기록된 최신 bronze→silver 실행(created_at 기준)의 오류 레코드 건수. REJECTED는 제외 유형, UNMAPPED_RESIDUAL은 정상 적재와 겹칠 수도 있는 잔여 성분이다. 상품 수가 아니며, 오른쪽 집계 상태가 정상일 때만 막대가 표시된다. 신규 유형은 자동으로 추가된다.",
-      "title": "오류 유형별 레코드 건수 (백필)",
-      "targets": [
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "${dq_datasource}"
-          },
-          "refId": "A",
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "${dq_api_url}/dq/error-types?stage=bronze_to_silver_backfill&from=${__from}&to=${__to}",
-          "url_options": {
-            "method": "GET"
-          },
-          "root_selector": "rows",
-          "columns": [
-            {
-              "selector": "error_type",
-              "text": "error_type",
-              "type": "string"
-            },
-            {
-              "selector": "count",
-              "text": "count",
-              "type": "number"
-            },
-            {
-              "selector": "class",
-              "text": "class",
-              "type": "string"
-            }
-          ]
-        }
-      ],
-      "type": "barchart"
-    },
-    {
-      "datasource": {
-        "type": "yesoreyeram-infinity-datasource",
-        "uid": "${dq_datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "ok": {
-                  "text": "집계 정상",
-                  "color": "green"
-                },
-                "no_breakdown": {
-                  "text": "유형별 자료 없음",
-                  "color": "yellow"
-                },
-                "incomplete": {
-                  "text": "집계 불완전",
-                  "color": "red"
-                },
-                "no_data_in_range": {
-                  "text": "선택 기간에 실행 없음",
-                  "color": "blue"
-                },
-                "no_data": {
-                  "text": "관측 기록 없음",
-                  "color": "blue"
-                }
-              }
-            }
-          ],
-          "color": {
-            "mode": "thresholds"
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 7,
-        "x": 17,
-        "y": 33
-      },
-      "id": 117,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "textMode": "value",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        }
-      },
-      "description": "ok=유형 합계가 계산된 silver_error와 일치(0건 포함). no_breakdown=구버전 실행 또는 유형별 저장 실패로 구분 불가. incomplete=합계 불일치. 기간 내 실행 없음·API 조회 실패는 각각 별도로 확인한다.",
-      "title": "유형별 집계 상태 (백필)",
-      "targets": [
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "${dq_datasource}"
-          },
-          "refId": "A",
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "${dq_api_url}/dq/error-types?stage=bronze_to_silver_backfill&from=${__from}&to=${__to}",
-          "url_options": {
-            "method": "GET"
-          },
-          "root_selector": "",
-          "columns": [
-            {
-              "selector": "status",
-              "text": "status",
-              "type": "string"
-            }
-          ]
-        }
-      ],
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "yesoreyeram-infinity-datasource",
-        "uid": "${dq_datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "blue"
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 2,
-        "w": 7,
-        "x": 17,
-        "y": 36
-      },
-      "id": 118,
-      "options": {
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "textMode": "value",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        }
-      },
-      "description": "선택된 최신 기록의 batch_date. 최신 판단은 batch_date 최대가 아니라 기록 시각 created_at 기준이므로 재실행·백필 시 과거 배치일 수도 있다.",
-      "title": "관측 배치일 (백필)",
-      "targets": [
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "${dq_datasource}"
-          },
-          "refId": "A",
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "${dq_api_url}/dq/error-types?stage=bronze_to_silver_backfill&from=${__from}&to=${__to}",
-          "url_options": {
-            "method": "GET"
-          },
-          "root_selector": "",
-          "columns": [
-            {
-              "selector": "batch_date",
-              "text": "batch_date",
-              "type": "string"
-            }
-          ]
-        }
-      ],
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "yesoreyeram-infinity-datasource",
-        "uid": "${dq_datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "blue"
-          },
-          "unit": "short",
-          "min": 0
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 3,
-        "w": 7,
-        "x": 17,
-        "y": 38
-      },
-      "id": 119,
-      "options": {
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        }
-      },
-      "description": "silver_error 마커 값: 해당 실행에서 적재 전에 계산한 오류 레코드 수. 실제 Iceberg 적재 성공이나 제외 상품 수가 아니다. 유형별 막대와 합계 비교는 집계 상태에서 판정한다.",
-      "title": "오류 레코드 합계 (계산값, 백필)",
-      "targets": [
-        {
-          "datasource": {
-            "type": "yesoreyeram-infinity-datasource",
-            "uid": "${dq_datasource}"
-          },
-          "refId": "A",
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "${dq_api_url}/dq/error-types?stage=bronze_to_silver_backfill&from=${__from}&to=${__to}",
-          "url_options": {
-            "method": "GET"
-          },
-          "root_selector": "",
-          "columns": [
-            {
-              "selector": "silver_error",
-              "text": "silver_error",
-              "type": "number"
-            }
-          ]
-        }
-      ],
-      "type": "stat"
+      }
     }
   ],
-  "templating": {
-    "list": [
-      {
-        "current": {},
-        "hide": 0,
+  "cursorSync": "Off",
+  "editable": true,
+  "elements": {
+    "panel-101": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "metric_value",
+                          "text": "value",
+                          "type": "number"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/latest?stage=silver_to_gold&metric=match_rate&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "최신 silver→gold INCI 매핑률. 초록 ≥0.95 / 노랑 ≥0.85 / 빨강 그 미만. ⚠️ 백필은 bronze→silver만 실행하고 crawl·gold는 절대 건드리지 않아, 이 지표는 백필과 무관(N/A)하다.",
+        "id": 101,
+        "links": [],
+        "title": "INCI 매핑률",
+        "vizConfig": {
+          "group": "stat",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "links": [
+                  {
+                    "targetBlank": true,
+                    "title": "🔎 Iceberg UI 드릴다운",
+                    "url": "${iceberg_ui_url}/?view=drilldown&metric=category_success_count&catalog=oliveyoung_db&table=oliveyoung_silver_current&snapshot_mode=latest"
+                  },
+                  {
+                    "targetBlank": true,
+                    "title": "📜 Loki 로그 보기",
+                    "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"silver_to_gold\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}"
+                  }
+                ],
+                "max": 1,
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.85
+                    },
+                    {
+                      "color": "green",
+                      "value": 0.95
+                    }
+                  ]
+                },
+                "unit": "percentunit"
+              },
+              "overrides": []
+            },
+            "options": {
+              "colorMode": "background",
+              "graphMode": "none",
+              "justifyMode": "center",
+              "orientation": "auto",
+              "percentChangeColorMode": "standard",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ],
+                "fields": "",
+                "values": false
+              },
+              "showPercentChange": false,
+              "textMode": "auto",
+              "wideLayout": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-102": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "metric_value",
+                          "text": "value",
+                          "type": "number"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/latest?stage=bronze_to_silver&metric=error_rate&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "기존 error_rate = 오류 레코드/(정상 출력 행+오류 레코드). Silver에 적재되는 상품의 잔여 성분 경고도 오류에 포함될 수 있어 상품 제외율이나 적재 실패율이 아니다. 분모도 중복될 수 있으므로 임계 판정 대신 추이 참고용으로만 사용한다.",
+        "id": 102,
+        "links": [],
+        "title": "오류 레코드 비중 (정상, 참고)",
+        "vizConfig": {
+          "group": "stat",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                },
+                "links": [
+                  {
+                    "targetBlank": true,
+                    "title": "🔎 Iceberg UI 드릴다운",
+                    "url": "${iceberg_ui_url}/?view=drilldown&metric=category_failure&catalog=oliveyoung_db&table=oliveyoung_silver_error&snapshot_mode=latest"
+                  },
+                  {
+                    "targetBlank": true,
+                    "title": "📜 Loki 로그 보기",
+                    "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"bronze_to_silver\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}"
+                  }
+                ],
+                "max": 1,
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "blue",
+                      "value": 0
+                    }
+                  ]
+                },
+                "unit": "percentunit"
+              },
+              "overrides": []
+            },
+            "options": {
+              "colorMode": "background",
+              "graphMode": "none",
+              "justifyMode": "center",
+              "orientation": "auto",
+              "percentChangeColorMode": "standard",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ],
+                "fields": "",
+                "values": false
+              },
+              "showPercentChange": false,
+              "textMode": "auto",
+              "wideLayout": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-103": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "metric_value",
+                          "text": "value",
+                          "type": "number"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/latest?stage=crawl&metric=categories_failed&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "최신 크롤에서 기록된 카테고리 이동 실패 수. 일반 예외·0건·재개 시 건너뛴 카테고리는 포함하지 않으므로 0이 전체 수집 성공을 뜻하지는 않는다. ⚠️ 백필은 bronze→silver만 실행하고 crawl·gold는 절대 건드리지 않아, 이 지표는 백필과 무관(N/A)하다.",
+        "id": 103,
+        "links": [],
+        "title": "카테고리 이동 실패",
+        "vizConfig": {
+          "group": "stat",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "links": [
+                  {
+                    "targetBlank": true,
+                    "title": "🔎 Iceberg UI 드릴다운",
+                    "url": "${iceberg_ui_url}/?view=drilldown&metric=category_failure&catalog=oliveyoung_db&table=oliveyoung_silver_error&snapshot_mode=latest"
+                  },
+                  {
+                    "targetBlank": true,
+                    "title": "📜 Loki 로그 보기",
+                    "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"crawl\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}"
+                  }
+                ],
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                },
+                "unit": "short"
+              },
+              "overrides": []
+            },
+            "options": {
+              "colorMode": "background",
+              "graphMode": "none",
+              "justifyMode": "center",
+              "orientation": "auto",
+              "percentChangeColorMode": "standard",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ],
+                "fields": "",
+                "values": false
+              },
+              "showPercentChange": false,
+              "textMode": "auto",
+              "wideLayout": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-104": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "metric_value",
+                          "text": "value",
+                          "type": "number"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/latest?stage=crawl&metric=categories_zero&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "최신 크롤에서 방문 후 상품 0건으로 기록된 카테고리 수. 재개 과정에서 건너뛴 카테고리와는 별개이며, 1 이상이면 원인 확인이 필요하다. ⚠️ 백필은 bronze→silver만 실행하고 crawl·gold는 절대 건드리지 않아, 이 지표는 백필과 무관(N/A)하다.",
+        "id": 104,
+        "links": [],
+        "title": "카테고리 0건",
+        "vizConfig": {
+          "group": "stat",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "links": [
+                  {
+                    "targetBlank": true,
+                    "title": "🔎 Iceberg UI 드릴다운",
+                    "url": "${iceberg_ui_url}/?view=drilldown&metric=category_success_count&catalog=oliveyoung_db&table=oliveyoung_silver_current&snapshot_mode=latest"
+                  },
+                  {
+                    "targetBlank": true,
+                    "title": "📜 Loki 로그 보기",
+                    "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"crawl\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}"
+                  }
+                ],
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                },
+                "unit": "short"
+              },
+              "overrides": []
+            },
+            "options": {
+              "colorMode": "background",
+              "graphMode": "none",
+              "justifyMode": "center",
+              "orientation": "auto",
+              "percentChangeColorMode": "standard",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ],
+                "fields": "",
+                "values": false
+              },
+              "showPercentChange": false,
+              "textMode": "auto",
+              "wideLayout": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-105": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "error_type",
+                          "text": "error_type",
+                          "type": "string"
+                        },
+                        {
+                          "selector": "count",
+                          "text": "count",
+                          "type": "number"
+                        },
+                        {
+                          "selector": "class",
+                          "text": "class",
+                          "type": "string"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "rows",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/error-types?stage=bronze_to_silver&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "선택 기간에 기록된 최신 bronze→silver 실행(created_at 기준)의 오류 레코드 건수. REJECTED는 제외 유형, UNMAPPED_RESIDUAL은 정상 적재와 겹칠 수도 있는 잔여 성분이다. 상품 수가 아니며, 오른쪽 집계 상태가 정상일 때만 막대가 표시된다. 신규 유형은 자동으로 추가된다.",
+        "id": 105,
+        "links": [],
+        "title": "오류 유형별 레코드 건수",
+        "vizConfig": {
+          "group": "barchart",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "axisBorderShow": false,
+                  "axisCenteredZero": false,
+                  "axisColorMode": "text",
+                  "axisLabel": "",
+                  "axisPlacement": "auto",
+                  "fillOpacity": 80,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "viz": false
+                  },
+                  "lineWidth": 1,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "thresholdsStyle": {
+                    "mode": "off"
+                  }
+                },
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                },
+                "unit": "short"
+              },
+              "overrides": [
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "class"
+                  },
+                  "properties": [
+                    {
+                      "id": "mappings",
+                      "value": [
+                        {
+                          "options": {
+                            "other": {
+                              "color": "purple",
+                              "text": "기타"
+                            },
+                            "rejected": {
+                              "color": "red",
+                              "text": "제외"
+                            },
+                            "residual": {
+                              "color": "blue",
+                              "text": "잔여 성분"
+                            },
+                            "unclassified": {
+                              "color": "orange",
+                              "text": "미분류"
+                            }
+                          },
+                          "type": "value"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "options": {
+              "barRadius": 0,
+              "barWidth": 0.97,
+              "fullHighlight": false,
+              "groupWidth": 0.7,
+              "legend": {
+                "calcs": [],
+                "displayMode": "list",
+                "placement": "right",
+                "showLegend": true
+              },
+              "orientation": "horizontal",
+              "showValue": "never",
+              "stacking": "none",
+              "tooltip": {
+                "hideZeros": false,
+                "mode": "single",
+                "sort": "none"
+              },
+              "xField": "error_type",
+              "xTickLabelRotation": 0,
+              "xTickLabelSpacing": 0
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-106": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "status",
+                          "text": "status",
+                          "type": "string"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/error-types?stage=bronze_to_silver&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "ok=유형 합계가 계산된 silver_error와 일치(0건 포함). no_breakdown=구버전 실행 또는 유형별 저장 실패로 구분 불가. incomplete=합계 불일치. 기간 내 실행 없음·API 조회 실패는 각각 별도로 확인한다.",
+        "id": 106,
+        "links": [],
+        "title": "유형별 집계 상태",
+        "vizConfig": {
+          "group": "stat",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "mappings": [
+                  {
+                    "options": {
+                      "incomplete": {
+                        "color": "red",
+                        "text": "집계 불완전"
+                      },
+                      "no_breakdown": {
+                        "color": "yellow",
+                        "text": "유형별 자료 없음"
+                      },
+                      "no_data": {
+                        "color": "blue",
+                        "text": "관측 기록 없음"
+                      },
+                      "no_data_in_range": {
+                        "color": "blue",
+                        "text": "선택 기간에 실행 없음"
+                      },
+                      "ok": {
+                        "color": "green",
+                        "text": "집계 정상"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ],
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                }
+              },
+              "overrides": []
+            },
+            "options": {
+              "colorMode": "background",
+              "graphMode": "none",
+              "justifyMode": "center",
+              "orientation": "auto",
+              "percentChangeColorMode": "standard",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ],
+                "fields": "/^status$/",
+                "values": false
+              },
+              "showPercentChange": false,
+              "textMode": "value",
+              "wideLayout": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-107": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "batch_date",
+                          "text": "batch_date",
+                          "type": "string"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/error-types?stage=bronze_to_silver&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "선택된 최신 기록의 batch_date. 최신 판단은 batch_date 최대가 아니라 기록 시각 created_at 기준이므로 재실행·백필 시 과거 배치일 수도 있다.",
+        "id": 107,
+        "links": [],
+        "title": "관측 배치일",
+        "vizConfig": {
+          "group": "stat",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                }
+              },
+              "overrides": []
+            },
+            "options": {
+              "colorMode": "none",
+              "graphMode": "none",
+              "justifyMode": "center",
+              "orientation": "auto",
+              "percentChangeColorMode": "standard",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ],
+                "fields": "/^batch_date$/",
+                "values": false
+              },
+              "showPercentChange": false,
+              "textMode": "value",
+              "wideLayout": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-108": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "silver_error",
+                          "text": "silver_error",
+                          "type": "number"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/error-types?stage=bronze_to_silver&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "silver_error 마커 값: 해당 실행에서 적재 전에 계산한 오류 레코드 수. 실제 Iceberg 적재 성공이나 제외 상품 수가 아니다. 유형별 막대와 합계 비교는 집계 상태에서 판정한다.",
+        "id": 108,
+        "links": [],
+        "title": "오류 레코드 합계 (계산값)",
+        "vizConfig": {
+          "group": "stat",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                },
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                },
+                "unit": "short"
+              },
+              "overrides": []
+            },
+            "options": {
+              "colorMode": "none",
+              "graphMode": "none",
+              "justifyMode": "center",
+              "orientation": "auto",
+              "percentChangeColorMode": "standard",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ],
+                "fields": "",
+                "values": false
+              },
+              "showPercentChange": false,
+              "textMode": "auto",
+              "wideLayout": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-116": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "error_type",
+                          "text": "error_type",
+                          "type": "string"
+                        },
+                        {
+                          "selector": "count",
+                          "text": "count",
+                          "type": "number"
+                        },
+                        {
+                          "selector": "class",
+                          "text": "class",
+                          "type": "string"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "rows",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/error-types?stage=bronze_to_silver_backfill&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "선택 기간에 기록된 최신 bronze→silver 실행(created_at 기준)의 오류 레코드 건수. REJECTED는 제외 유형, UNMAPPED_RESIDUAL은 정상 적재와 겹칠 수도 있는 잔여 성분이다. 상품 수가 아니며, 오른쪽 집계 상태가 정상일 때만 막대가 표시된다. 신규 유형은 자동으로 추가된다.",
+        "id": 116,
+        "links": [],
+        "title": "오류 유형별 레코드 건수 (백필)",
+        "vizConfig": {
+          "group": "barchart",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "axisBorderShow": false,
+                  "axisCenteredZero": false,
+                  "axisColorMode": "text",
+                  "axisLabel": "",
+                  "axisPlacement": "auto",
+                  "fillOpacity": 80,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "viz": false
+                  },
+                  "lineWidth": 1,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "thresholdsStyle": {
+                    "mode": "off"
+                  }
+                },
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                },
+                "unit": "short"
+              },
+              "overrides": [
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "class"
+                  },
+                  "properties": [
+                    {
+                      "id": "mappings",
+                      "value": [
+                        {
+                          "options": {
+                            "other": {
+                              "color": "purple",
+                              "text": "기타"
+                            },
+                            "rejected": {
+                              "color": "red",
+                              "text": "제외"
+                            },
+                            "residual": {
+                              "color": "blue",
+                              "text": "잔여 성분"
+                            },
+                            "unclassified": {
+                              "color": "orange",
+                              "text": "미분류"
+                            }
+                          },
+                          "type": "value"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "options": {
+              "barRadius": 0,
+              "barWidth": 0.97,
+              "fullHighlight": false,
+              "groupWidth": 0.7,
+              "legend": {
+                "calcs": [],
+                "displayMode": "list",
+                "placement": "right",
+                "showLegend": true
+              },
+              "orientation": "horizontal",
+              "showValue": "never",
+              "stacking": "none",
+              "tooltip": {
+                "hideZeros": false,
+                "mode": "single",
+                "sort": "none"
+              },
+              "xField": "error_type",
+              "xTickLabelRotation": 0,
+              "xTickLabelSpacing": 0
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-117": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "status",
+                          "text": "status",
+                          "type": "string"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/error-types?stage=bronze_to_silver_backfill&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "ok=유형 합계가 계산된 silver_error와 일치(0건 포함). no_breakdown=구버전 실행 또는 유형별 저장 실패로 구분 불가. incomplete=합계 불일치. 기간 내 실행 없음·API 조회 실패는 각각 별도로 확인한다.",
+        "id": 117,
+        "links": [],
+        "title": "유형별 집계 상태 (백필)",
+        "vizConfig": {
+          "group": "stat",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "mappings": [
+                  {
+                    "options": {
+                      "incomplete": {
+                        "color": "red",
+                        "text": "집계 불완전"
+                      },
+                      "no_breakdown": {
+                        "color": "yellow",
+                        "text": "유형별 자료 없음"
+                      },
+                      "no_data": {
+                        "color": "blue",
+                        "text": "관측 기록 없음"
+                      },
+                      "no_data_in_range": {
+                        "color": "blue",
+                        "text": "선택 기간에 실행 없음"
+                      },
+                      "ok": {
+                        "color": "green",
+                        "text": "집계 정상"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ],
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                }
+              },
+              "overrides": []
+            },
+            "options": {
+              "colorMode": "background",
+              "graphMode": "none",
+              "justifyMode": "center",
+              "orientation": "auto",
+              "percentChangeColorMode": "standard",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ],
+                "fields": "/^status$/",
+                "values": false
+              },
+              "showPercentChange": false,
+              "textMode": "value",
+              "wideLayout": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-118": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "batch_date",
+                          "text": "batch_date",
+                          "type": "string"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/error-types?stage=bronze_to_silver_backfill&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "선택된 최신 기록의 batch_date. 최신 판단은 batch_date 최대가 아니라 기록 시각 created_at 기준이므로 재실행·백필 시 과거 배치일 수도 있다.",
+        "id": 118,
+        "links": [],
+        "title": "관측 배치일 (백필)",
+        "vizConfig": {
+          "group": "stat",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                }
+              },
+              "overrides": []
+            },
+            "options": {
+              "colorMode": "none",
+              "graphMode": "none",
+              "justifyMode": "center",
+              "orientation": "auto",
+              "percentChangeColorMode": "standard",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ],
+                "fields": "/^batch_date$/",
+                "values": false
+              },
+              "showPercentChange": false,
+              "textMode": "value",
+              "wideLayout": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-119": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "silver_error",
+                          "text": "silver_error",
+                          "type": "number"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/error-types?stage=bronze_to_silver_backfill&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "silver_error 마커 값: 해당 실행에서 적재 전에 계산한 오류 레코드 수. 실제 Iceberg 적재 성공이나 제외 상품 수가 아니다. 유형별 막대와 합계 비교는 집계 상태에서 판정한다.",
+        "id": 119,
+        "links": [],
+        "title": "오류 레코드 합계 (계산값, 백필)",
+        "vizConfig": {
+          "group": "stat",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                },
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                },
+                "unit": "short"
+              },
+              "overrides": []
+            },
+            "options": {
+              "colorMode": "none",
+              "graphMode": "none",
+              "justifyMode": "center",
+              "orientation": "auto",
+              "percentChangeColorMode": "standard",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ],
+                "fields": "",
+                "values": false
+              },
+              "showPercentChange": false,
+              "textMode": "auto",
+              "wideLayout": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-2": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "created_at",
+                          "text": "time",
+                          "type": "timestamp"
+                        },
+                        {
+                          "selector": "metric_value",
+                          "text": "match_rate",
+                          "type": "number"
+                        },
+                        {
+                          "selector": "batch_date",
+                          "text": "batch_date",
+                          "type": "string"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/series?stage=silver_to_gold&metric=match_rate&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "silver→gold 단계 INCI 매핑률. 실행마다 한 점. 급락 시 성분 사전/소스 변동 의심.",
+        "id": 2,
+        "links": [],
+        "title": "INCI 매핑률 (silver→gold)",
+        "vizConfig": {
+          "group": "timeseries",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "custom": {
+                  "axisBorderShow": false,
+                  "axisCenteredZero": false,
+                  "axisColorMode": "text",
+                  "axisLabel": "",
+                  "axisPlacement": "auto",
+                  "barAlignment": 0,
+                  "barWidthFactor": 0.6,
+                  "drawStyle": "line",
+                  "fillOpacity": 0,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "viz": false
+                  },
+                  "insertNulls": false,
+                  "lineInterpolation": "linear",
+                  "lineWidth": 2,
+                  "pointSize": 6,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "showPoints": "always",
+                  "showValues": false,
+                  "spanNulls": true,
+                  "stacking": {
+                    "group": "A",
+                    "mode": "none"
+                  },
+                  "thresholdsStyle": {
+                    "mode": "line"
+                  }
+                },
+                "links": [
+                  {
+                    "targetBlank": true,
+                    "title": "🔎 Iceberg UI 드릴다운",
+                    "url": "${iceberg_ui_url}/?view=drilldown&metric=category_success_count&catalog=oliveyoung_db&table=oliveyoung_silver_current&snapshot_mode=latest&batch_date=${__data.fields.batch_date}"
+                  },
+                  {
+                    "targetBlank": true,
+                    "title": "📜 Loki 로그 보기",
+                    "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"silver_to_gold\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}"
+                  }
+                ],
+                "max": 1,
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": 0
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.85
+                    },
+                    {
+                      "color": "green",
+                      "value": 0.95
+                    }
+                  ]
+                },
+                "unit": "percentunit"
+              },
+              "overrides": []
+            },
+            "options": {
+              "annotations": {
+                "clustering": -1,
+                "multiLane": false
+              },
+              "legend": {
+                "calcs": [],
+                "displayMode": "list",
+                "placement": "bottom",
+                "showLegend": true
+              },
+              "tooltip": {
+                "hideZeros": false,
+                "mode": "multi",
+                "sort": "none"
+              }
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-21": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "created_at",
+                          "text": "created_at",
+                          "type": "timestamp"
+                        },
+                        {
+                          "selector": "batch_date",
+                          "text": "batch_date",
+                          "type": "string"
+                        },
+                        {
+                          "selector": "stage",
+                          "text": "stage",
+                          "type": "string"
+                        },
+                        {
+                          "selector": "metric_name",
+                          "text": "metric_name",
+                          "type": "string"
+                        },
+                        {
+                          "selector": "metric_value",
+                          "text": "metric_value",
+                          "type": "number"
+                        },
+                        {
+                          "selector": "target_table",
+                          "text": "target_table",
+                          "type": "string"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/rows?limit=200&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "dq_metrics 최근 행. Iceberg UI 드릴다운 링크는 팀원 UI가 딥링크(쿼리파람) 지원하면 그때 연결 예정.",
+        "id": 21,
+        "links": [],
+        "title": "최근 DQ 행 (dq_metrics)",
+        "vizConfig": {
+          "group": "table",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "custom": {
+                  "filterable": true
+                }
+              },
+              "overrides": []
+            },
+            "options": {
+              "showHeader": true,
+              "sortBy": [
+                {
+                  "desc": true,
+                  "displayName": "created_at"
+                }
+              ]
+            }
+          },
+          "version": ""
+        }
+      }
+    },
+    "panel-3": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "created_at",
+                          "text": "time",
+                          "type": "timestamp"
+                        },
+                        {
+                          "selector": "metric_value",
+                          "text": "unique",
+                          "type": "number"
+                        },
+                        {
+                          "selector": "batch_date",
+                          "text": "batch_date",
+                          "type": "string"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/series?stage=silver_to_gold&metric=ingredients_unique&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              },
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "created_at",
+                          "text": "time",
+                          "type": "timestamp"
+                        },
+                        {
+                          "selector": "metric_value",
+                          "text": "matched",
+                          "type": "number"
+                        },
+                        {
+                          "selector": "batch_date",
+                          "text": "batch_date",
+                          "type": "string"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/series?stage=silver_to_gold&metric=ingredients_matched&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "B"
+                }
+              },
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "created_at",
+                          "text": "time",
+                          "type": "timestamp"
+                        },
+                        {
+                          "selector": "metric_value",
+                          "text": "unmatched",
+                          "type": "number"
+                        },
+                        {
+                          "selector": "batch_date",
+                          "text": "batch_date",
+                          "type": "string"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/series?stage=silver_to_gold&metric=ingredients_unmatched&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "C"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "unique 성분 대비 INCI 매핑 성공/실패 건수.",
+        "id": 3,
+        "links": [],
+        "title": "성분 매핑 건수 (silver→gold)",
+        "vizConfig": {
+          "group": "timeseries",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "axisBorderShow": false,
+                  "axisCenteredZero": false,
+                  "axisColorMode": "text",
+                  "axisLabel": "",
+                  "axisPlacement": "auto",
+                  "barAlignment": 0,
+                  "barWidthFactor": 0.6,
+                  "drawStyle": "line",
+                  "fillOpacity": 0,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "viz": false
+                  },
+                  "insertNulls": false,
+                  "lineInterpolation": "linear",
+                  "lineWidth": 2,
+                  "pointSize": 6,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "showPoints": "always",
+                  "showValues": false,
+                  "spanNulls": true,
+                  "stacking": {
+                    "group": "A",
+                    "mode": "none"
+                  },
+                  "thresholdsStyle": {
+                    "mode": "off"
+                  }
+                },
+                "links": [
+                  {
+                    "targetBlank": true,
+                    "title": "🔎 Iceberg UI 드릴다운",
+                    "url": "${iceberg_ui_url}/?view=drilldown&metric=category_success_count&catalog=oliveyoung_db&table=oliveyoung_silver_current&snapshot_mode=latest&batch_date=${__data.fields.batch_date}"
+                  },
+                  {
+                    "targetBlank": true,
+                    "title": "📜 Loki 로그 보기",
+                    "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"silver_to_gold\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}"
+                  }
+                ],
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                },
+                "unit": "short"
+              },
+              "overrides": []
+            },
+            "options": {
+              "annotations": {
+                "clustering": -1,
+                "multiLane": false
+              },
+              "legend": {
+                "calcs": [],
+                "displayMode": "list",
+                "placement": "bottom",
+                "showLegend": true
+              },
+              "tooltip": {
+                "hideZeros": false,
+                "mode": "multi",
+                "sort": "none"
+              }
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-5": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "created_at",
+                          "text": "time",
+                          "type": "timestamp"
+                        },
+                        {
+                          "selector": "metric_value",
+                          "text": "bronze_loaded",
+                          "type": "number"
+                        },
+                        {
+                          "selector": "batch_date",
+                          "text": "batch_date",
+                          "type": "string"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/series?stage=bronze_to_silver&metric=bronze_loaded&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              },
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "created_at",
+                          "text": "time",
+                          "type": "timestamp"
+                        },
+                        {
+                          "selector": "metric_value",
+                          "text": "silver_ok",
+                          "type": "number"
+                        },
+                        {
+                          "selector": "batch_date",
+                          "text": "batch_date",
+                          "type": "string"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/series?stage=bronze_to_silver&metric=silver_ok&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "B"
+                }
+              },
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "created_at",
+                          "text": "time",
+                          "type": "timestamp"
+                        },
+                        {
+                          "selector": "metric_value",
+                          "text": "silver_error",
+                          "type": "number"
+                        },
+                        {
+                          "selector": "batch_date",
+                          "text": "batch_date",
+                          "type": "string"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/series?stage=bronze_to_silver&metric=silver_error&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "C"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "입력 행, 정상 출력 행, 오류 레코드의 실행별 계산값. 한 상품의 정상 출력과 잔여 성분 경고가 겹칠 수 있으므로 정상+오류=입력이라는 보존식이 성립하지 않는다. Silver 실제 적재 성공을 증명하는 값도 아니다.",
+        "id": 5,
+        "links": [],
+        "title": "입력·정제·오류 레코드 (계산값)",
+        "vizConfig": {
+          "group": "timeseries",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "axisBorderShow": false,
+                  "axisCenteredZero": false,
+                  "axisColorMode": "text",
+                  "axisLabel": "",
+                  "axisPlacement": "auto",
+                  "barAlignment": 0,
+                  "barWidthFactor": 0.6,
+                  "drawStyle": "line",
+                  "fillOpacity": 0,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "viz": false
+                  },
+                  "insertNulls": false,
+                  "lineInterpolation": "linear",
+                  "lineWidth": 2,
+                  "pointSize": 6,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "showPoints": "always",
+                  "showValues": false,
+                  "spanNulls": true,
+                  "stacking": {
+                    "group": "A",
+                    "mode": "none"
+                  },
+                  "thresholdsStyle": {
+                    "mode": "off"
+                  }
+                },
+                "links": [
+                  {
+                    "targetBlank": true,
+                    "title": "🔎 Iceberg UI 드릴다운",
+                    "url": "${iceberg_ui_url}/?view=drilldown&metric=category_failure&catalog=oliveyoung_db&table=oliveyoung_silver_error&snapshot_mode=latest&batch_date=${__data.fields.batch_date}"
+                  },
+                  {
+                    "targetBlank": true,
+                    "title": "📜 Loki 로그 보기",
+                    "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"bronze_to_silver\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}"
+                  }
+                ],
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                },
+                "unit": "short"
+              },
+              "overrides": []
+            },
+            "options": {
+              "annotations": {
+                "clustering": -1,
+                "multiLane": false
+              },
+              "legend": {
+                "calcs": [],
+                "displayMode": "list",
+                "placement": "bottom",
+                "showLegend": true
+              },
+              "tooltip": {
+                "hideZeros": false,
+                "mode": "multi",
+                "sort": "none"
+              }
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-6": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "created_at",
+                          "text": "time",
+                          "type": "timestamp"
+                        },
+                        {
+                          "selector": "metric_value",
+                          "text": "error_rate",
+                          "type": "number"
+                        },
+                        {
+                          "selector": "batch_date",
+                          "text": "batch_date",
+                          "type": "string"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/series?stage=bronze_to_silver&metric=error_rate&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "기존 error_rate의 실행별 추이. 오류에는 정상 적재와 겹치는 잔여 성분 경고가 포함될 수 있다. 상품 실패율이 아니며 아직 운영 임계값을 확정하지 않았다.",
+        "id": 6,
+        "links": [],
+        "title": "오류 레코드 비중 추이 (참고)",
+        "vizConfig": {
+          "group": "timeseries",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                },
+                "custom": {
+                  "axisBorderShow": false,
+                  "axisCenteredZero": false,
+                  "axisColorMode": "text",
+                  "axisLabel": "",
+                  "axisPlacement": "auto",
+                  "barAlignment": 0,
+                  "barWidthFactor": 0.6,
+                  "drawStyle": "line",
+                  "fillOpacity": 0,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "viz": false
+                  },
+                  "insertNulls": false,
+                  "lineInterpolation": "linear",
+                  "lineWidth": 2,
+                  "pointSize": 6,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "showPoints": "always",
+                  "showValues": false,
+                  "spanNulls": true,
+                  "stacking": {
+                    "group": "A",
+                    "mode": "none"
+                  },
+                  "thresholdsStyle": {
+                    "mode": "off"
+                  }
+                },
+                "links": [
+                  {
+                    "targetBlank": true,
+                    "title": "🔎 Iceberg UI 드릴다운",
+                    "url": "${iceberg_ui_url}/?view=drilldown&metric=category_failure&catalog=oliveyoung_db&table=oliveyoung_silver_error&snapshot_mode=latest&batch_date=${__data.fields.batch_date}"
+                  },
+                  {
+                    "targetBlank": true,
+                    "title": "📜 Loki 로그 보기",
+                    "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"bronze_to_silver\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}"
+                  }
+                ],
+                "max": 1,
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "blue",
+                      "value": 0
+                    }
+                  ]
+                },
+                "unit": "percentunit"
+              },
+              "overrides": []
+            },
+            "options": {
+              "annotations": {
+                "clustering": -1,
+                "multiLane": false
+              },
+              "legend": {
+                "calcs": [],
+                "displayMode": "list",
+                "placement": "bottom",
+                "showLegend": true
+              },
+              "tooltip": {
+                "hideZeros": false,
+                "mode": "multi",
+                "sort": "none"
+              }
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-8": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "created_at",
+                          "text": "time",
+                          "type": "timestamp"
+                        },
+                        {
+                          "selector": "metric_value",
+                          "text": "products_total",
+                          "type": "number"
+                        },
+                        {
+                          "selector": "batch_date",
+                          "text": "batch_date",
+                          "type": "string"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/series?stage=crawl&metric=products_total&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "크롤 수집 상품 수 추이. 직전 대비 급락이면 크롤 결함 의심. ⚠️ 백필은 bronze→silver만 실행하고 crawl·gold는 절대 건드리지 않아, 이 지표는 백필과 무관(N/A)하다.",
+        "id": 8,
+        "links": [],
+        "title": "수집 상품 수 (crawl)",
+        "vizConfig": {
+          "group": "timeseries",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "axisBorderShow": false,
+                  "axisCenteredZero": false,
+                  "axisColorMode": "text",
+                  "axisLabel": "",
+                  "axisPlacement": "auto",
+                  "barAlignment": 0,
+                  "barWidthFactor": 0.6,
+                  "drawStyle": "line",
+                  "fillOpacity": 0,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "viz": false
+                  },
+                  "insertNulls": false,
+                  "lineInterpolation": "linear",
+                  "lineWidth": 2,
+                  "pointSize": 6,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "showPoints": "always",
+                  "showValues": false,
+                  "spanNulls": true,
+                  "stacking": {
+                    "group": "A",
+                    "mode": "none"
+                  },
+                  "thresholdsStyle": {
+                    "mode": "off"
+                  }
+                },
+                "links": [
+                  {
+                    "targetBlank": true,
+                    "title": "🔎 Iceberg UI 드릴다운",
+                    "url": "${iceberg_ui_url}/?view=drilldown&metric=ingestion_volume&catalog=oliveyoung_db&table=oliveyoung_silver_current&snapshot_mode=latest&batch_date=${__data.fields.batch_date}"
+                  },
+                  {
+                    "targetBlank": true,
+                    "title": "📜 Loki 로그 보기",
+                    "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"crawl\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}"
+                  }
+                ],
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                },
+                "unit": "short"
+              },
+              "overrides": []
+            },
+            "options": {
+              "annotations": {
+                "clustering": -1,
+                "multiLane": false
+              },
+              "legend": {
+                "calcs": [],
+                "displayMode": "list",
+                "placement": "bottom",
+                "showLegend": true
+              },
+              "tooltip": {
+                "hideZeros": false,
+                "mode": "multi",
+                "sort": "none"
+              }
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-9": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "created_at",
+                          "text": "time",
+                          "type": "timestamp"
+                        },
+                        {
+                          "selector": "metric_value",
+                          "text": "failed",
+                          "type": "number"
+                        },
+                        {
+                          "selector": "batch_date",
+                          "text": "batch_date",
+                          "type": "string"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/series?stage=crawl&metric=categories_failed&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              },
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "created_at",
+                          "text": "time",
+                          "type": "timestamp"
+                        },
+                        {
+                          "selector": "metric_value",
+                          "text": "zero",
+                          "type": "number"
+                        },
+                        {
+                          "selector": "batch_date",
+                          "text": "batch_date",
+                          "type": "string"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/series?stage=crawl&metric=categories_zero&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "B"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "이동 실패 / 0건 카테고리 수. >0이면 카테고리 누락 — 거의 항상 크롤 결함 신호. ⚠️ 백필은 bronze→silver만 실행하고 crawl·gold는 절대 건드리지 않아, 이 지표는 백필과 무관(N/A)하다.",
+        "id": 9,
+        "links": [],
+        "title": "카테고리 실패 / 0건 (crawl)",
+        "vizConfig": {
+          "group": "timeseries",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "custom": {
+                  "axisBorderShow": false,
+                  "axisCenteredZero": false,
+                  "axisColorMode": "text",
+                  "axisLabel": "",
+                  "axisPlacement": "auto",
+                  "barAlignment": 0,
+                  "barWidthFactor": 0.6,
+                  "drawStyle": "line",
+                  "fillOpacity": 0,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "viz": false
+                  },
+                  "insertNulls": false,
+                  "lineInterpolation": "linear",
+                  "lineWidth": 2,
+                  "pointSize": 6,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "showPoints": "always",
+                  "showValues": false,
+                  "spanNulls": true,
+                  "stacking": {
+                    "group": "A",
+                    "mode": "none"
+                  },
+                  "thresholdsStyle": {
+                    "mode": "line"
+                  }
+                },
+                "links": [
+                  {
+                    "targetBlank": true,
+                    "title": "🔎 Iceberg UI 드릴다운",
+                    "url": "${iceberg_ui_url}/?view=drilldown&metric=category_failure&catalog=oliveyoung_db&table=oliveyoung_silver_error&snapshot_mode=latest&batch_date=${__data.fields.batch_date}"
+                  },
+                  {
+                    "targetBlank": true,
+                    "title": "📜 Loki 로그 보기",
+                    "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"crawl\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}"
+                  }
+                ],
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                },
+                "unit": "short"
+              },
+              "overrides": []
+            },
+            "options": {
+              "annotations": {
+                "clustering": -1,
+                "multiLane": false
+              },
+              "legend": {
+                "calcs": [],
+                "displayMode": "list",
+                "placement": "bottom",
+                "showLegend": true
+              },
+              "tooltip": {
+                "hideZeros": false,
+                "mode": "multi",
+                "sort": "none"
+              }
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    }
+  },
+  "layout": {
+    "kind": "RowsLayout",
+    "spec": {
+      "rows": [
+        {
+          "kind": "RowsLayoutRow",
+          "spec": {
+            "collapse": false,
+            "layout": {
+              "kind": "GridLayout",
+              "spec": {
+                "items": [
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-101"
+                      },
+                      "height": 4,
+                      "width": 6,
+                      "x": 0,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-102"
+                      },
+                      "height": 4,
+                      "width": 6,
+                      "x": 6,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-103"
+                      },
+                      "height": 4,
+                      "width": 6,
+                      "x": 12,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-104"
+                      },
+                      "height": 4,
+                      "width": 6,
+                      "x": 18,
+                      "y": 0
+                    }
+                  }
+                ]
+              }
+            },
+            "title": "선택 기간의 최신 DQ 기록 (단계별 실행)"
+          }
+        },
+        {
+          "kind": "RowsLayoutRow",
+          "spec": {
+            "collapse": false,
+            "layout": {
+              "kind": "GridLayout",
+              "spec": {
+                "items": [
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-2"
+                      },
+                      "height": 8,
+                      "width": 12,
+                      "x": 0,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-3"
+                      },
+                      "height": 8,
+                      "width": 12,
+                      "x": 12,
+                      "y": 0
+                    }
+                  }
+                ]
+              }
+            },
+            "title": "매핑 품질 (silver→gold)"
+          }
+        },
+        {
+          "kind": "RowsLayoutRow",
+          "spec": {
+            "collapse": false,
+            "layout": {
+              "kind": "GridLayout",
+              "spec": {
+                "items": [
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-5"
+                      },
+                      "height": 8,
+                      "width": 12,
+                      "x": 0,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-6"
+                      },
+                      "height": 8,
+                      "width": 12,
+                      "x": 12,
+                      "y": 0
+                    }
+                  }
+                ]
+              }
+            },
+            "title": "전처리 계산 결과 (bronze→silver)"
+          }
+        },
+        {
+          "kind": "RowsLayoutRow",
+          "spec": {
+            "collapse": false,
+            "layout": {
+              "kind": "GridLayout",
+              "spec": {
+                "items": [
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-105"
+                      },
+                      "height": 9,
+                      "width": 17,
+                      "x": 0,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-106"
+                      },
+                      "height": 3,
+                      "width": 7,
+                      "x": 17,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-107"
+                      },
+                      "height": 3,
+                      "width": 7,
+                      "x": 17,
+                      "y": 3
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-108"
+                      },
+                      "height": 3,
+                      "width": 7,
+                      "x": 17,
+                      "y": 6
+                    }
+                  }
+                ]
+              }
+            },
+            "title": "전처리 오류 유형 · 선택 기간의 최신 실행 (정상)"
+          }
+        },
+        {
+          "kind": "RowsLayoutRow",
+          "spec": {
+            "collapse": false,
+            "layout": {
+              "kind": "GridLayout",
+              "spec": {
+                "items": [
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-116"
+                      },
+                      "height": 9,
+                      "width": 17,
+                      "x": 0,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-117"
+                      },
+                      "height": 3,
+                      "width": 7,
+                      "x": 17,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-118"
+                      },
+                      "height": 3,
+                      "width": 7,
+                      "x": 17,
+                      "y": 3
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-119"
+                      },
+                      "height": 3,
+                      "width": 7,
+                      "x": 17,
+                      "y": 6
+                    }
+                  }
+                ]
+              }
+            },
+            "title": "전처리 오류 유형 · 선택 기간의 최신 실행 (백필)"
+          }
+        },
+        {
+          "kind": "RowsLayoutRow",
+          "spec": {
+            "collapse": false,
+            "layout": {
+              "kind": "GridLayout",
+              "spec": {
+                "items": [
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-8"
+                      },
+                      "height": 8,
+                      "width": 12,
+                      "x": 0,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-9"
+                      },
+                      "height": 8,
+                      "width": 12,
+                      "x": 12,
+                      "y": 0
+                    }
+                  }
+                ]
+              }
+            },
+            "title": "수집 안정성 (crawl)"
+          }
+        },
+        {
+          "kind": "RowsLayoutRow",
+          "spec": {
+            "collapse": false,
+            "layout": {
+              "kind": "GridLayout",
+              "spec": {
+                "items": [
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-21"
+                      },
+                      "height": 10,
+                      "width": 24,
+                      "x": 0,
+                      "y": 0
+                    }
+                  }
+                ]
+              }
+            },
+            "title": "원시 데이터 · 드릴다운 (Iceberg)"
+          }
+        }
+      ]
+    }
+  },
+  "links": [],
+  "liveNow": false,
+  "preload": false,
+  "tags": [],
+  "timeSettings": {
+    "autoRefresh": "5m",
+    "autoRefreshIntervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ],
+    "fiscalYearStartMonth": 0,
+    "from": "now-30d",
+    "hideTimepicker": false,
+    "timezone": "browser",
+    "to": "now"
+  },
+  "title": "Oliveyoung 데이터 정합성 (테이블 소스)",
+  "variables": [
+    {
+      "kind": "DatasourceVariable",
+      "spec": {
+        "allowCustomValue": true,
+        "current": {
+          "text": "DQ API",
+          "value": "efqsx4w1y7caof"
+        },
+        "hide": "dontHide",
+        "includeAll": false,
         "label": "DQ API (Infinity)",
+        "multi": false,
         "name": "dq_datasource",
-        "query": "yesoreyeram-infinity-datasource",
-        "refresh": 1,
-        "type": "datasource"
-      },
-      {
+        "options": [],
+        "pluginId": "yesoreyeram-infinity-datasource",
+        "refresh": "onDashboardLoad",
+        "regex": "",
+        "skipUrlSync": false
+      }
+    },
+    {
+      "kind": "ConstantVariable",
+      "spec": {
         "current": {
           "text": "http://dq_api:8000",
           "value": "http://dq_api:8000"
         },
-        "hide": 0,
+        "hide": "dontHide",
         "label": "DQ API URL",
         "name": "dq_api_url",
         "query": "http://dq_api:8000",
-        "type": "constant"
-      },
-      {
+        "skipUrlSync": true
+      }
+    },
+    {
+      "kind": "ConstantVariable",
+      "spec": {
         "current": {
           "text": "http://15.165.179.181:8501",
           "value": "http://15.165.179.181:8501"
         },
-        "hide": 2,
+        "hide": "hideVariable",
         "label": "Iceberg UI URL",
         "name": "iceberg_ui_url",
         "query": "http://15.165.179.181:8501",
-        "type": "constant"
-      },
-      {
-        "current": {},
-        "hide": 0,
-        "label": "Loki",
-        "name": "loki_datasource",
-        "query": "loki",
-        "refresh": 1,
-        "type": "datasource"
+        "skipUrlSync": true
       }
-    ]
-  }
+    },
+    {
+      "kind": "DatasourceVariable",
+      "spec": {
+        "allowCustomValue": true,
+        "current": {
+          "text": "Loki",
+          "value": "cfp3bjqtnftvkf"
+        },
+        "hide": "dontHide",
+        "includeAll": false,
+        "label": "Loki",
+        "multi": false,
+        "name": "loki_datasource",
+        "options": [],
+        "pluginId": "loki",
+        "refresh": "onDashboardLoad",
+        "regex": "",
+        "skipUrlSync": false
+      }
+    }
+  ]
 }
