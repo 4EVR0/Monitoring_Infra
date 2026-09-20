@@ -20,7 +20,29 @@ DQ 오류 유형 패널은 `/dq/error-types` API를 사용한다. 운영 `dq_api
 `http://dq_api:8000`에 접근 가능한지 확인한다. 유형별 `err_*`는 새
 bronze→silver 실행부터 기록된다. 과거 실행에 `no_breakdown`이 뜨는 것은 0건이 아니라
 유형별 기록이 없는 상태다. `incomplete`는 합계 불일치이므로 막대를 정상 결과로 읽지 않는다.
-새 패널의 막대 방향·유형별 색은 운영 Grafana에서 한 번 시각 확인한다.
+막대는 기본 팔레트로 표시한다. API의 `class`는 응답과 필드 매핑에 남아 있지만, 현재 막대 색을 유형 분류별로 고정하지 않는다. 실제 막대·축·값 표시와 어두운 테마에서의 가독성은 운영 Grafana에서 확인한다.
+
+### DQ·백필 대시보드 변경 이력 (2026-09-10~21)
+
+아래 이력은 Git 커밋과 이번 디버깅에서 제공된 Grafana Inspector 응답을 바탕으로 작성했다. 커밋·PR 생성과 운영 Grafana 반영은 별개의 단계다.
+
+| 시점 | 커밋·PR | 변경 내용 |
+|---|---|---|
+| 9/10 | `2b356f9` (#14), `d3f0ab5` (#15) | 정합성 그래프와 최신 값 패널의 쿼리에 Grafana 선택 기간 `from`/`to`를 연결했다. API도 `created_at` 기준 기간 필터를 처리한다. |
+| 9/19 | `d1b7fc9` (#16) | `/dq/error-types`와 정상 실행의 오류 유형 패널, Airflow 실행 상태 패널을 추가했다. API는 선택 기간에서 `silver_error` 마커의 `created_at`이 가장 늦은 실행 한 건을 골라, 같은 `run_id`·`batch_date`의 `err_*`를 집계한다. |
+| 9/21 | `381e86d` (#17) | 수동 백필 DAG와 분리된 DQ stage `bronze_to_silver_backfill`의 가시성을 추가했다. |
+| 9/21 | `f789118` (#18), `87f8e54` | 정상·백필을 토글로 묶는 구성을 거쳐, 두 실행 종류를 각각의 행에 항상 나란히 보여주는 구성으로 바꿨다. `87f8e54`는 이후 브랜치 커밋이다. |
+| 9/21 | `1a0be74` | Infinity 쿼리에 `parser: backend`를 명시했다. 이 커밋은 #18 이후 브랜치에서 작성됐다. |
+| 9/21 | `559630a` ([PR #19](https://github.com/4EVR0/Monitoring_Infra/pull/19)) | Grafana 13 내보내기 JSON을 반영했다. 문자열 Stat의 `status`·`batch_date` 필드를 명시하고, 정상·백필 Bar chart 옵션과 두 행의 배치(막대 17×9, 오른쪽 Stat 7×3 세 개)를 같게 했다. 기본 기간은 30일이다. |
+
+#### 오류 유형 패널의 의미와 표시 문제
+
+- 정상과 백필은 각각 `stage=bronze_to_silver`, `stage=bronze_to_silver_backfill`로 조회한다. 각 막대 패널은 **선택 기간 안에서 기록 시각이 가장 늦은 해당 stage 실행 한 건**의 오류 유형별 **레코드** 수를 보여준다. 기간 전체 합계나 제외 상품 수가 아니다. `batch_date`가 과거여도 최근에 기록된 재실행·백필이면 최신 실행이 될 수 있다.
+- API는 유형별 합계가 `silver_error`와 일치할 때만 `rows`를 반환한다. `no_breakdown`·`incomplete`일 때 빈 막대는 0건을 뜻하지 않는다. 옆의 집계 상태를 함께 본다.
+- 2026-09-21 사용자가 제공한 백필 Inspector 결과에서 `backfill_20260810`의 `silver_error=1121`, 유형별 합계 1121, `rows` 7개, HTTP 200과 `count` 숫자 필드를 확인했다. 당시 패널이 회색 빈 화면이었던 원인은 API 응답이나 Infinity 파싱 부재로 볼 수 없었다. 기본 Bar chart 템플릿으로는 같은 데이터가 표시됐다.
+- 문자열 Stat이 `No data`였던 문제는 `reduceOptions.fields`가 비어 있던 설정을 `status` 또는 `batch_date` 필드 선택으로 바꿔 해결했다. Bar chart는 표시된 기본 템플릿 옵션을 기준으로 맞췄다. 기존 설정 중 `colorByField`, 강제 값 표시, 범례 설정 중 정확히 어느 하나가 빈 화면을 일으켰는지는 분리 검증하지 않았다.
+
+백필 생성·입력 무결성·조건부 교체·완료 리포트의 구현 이력과 실행 전 게이트는 Oliveyoung_Pipeline의 `docs/backfill.md`에 있다. 이 문서만으로 백필 데이터의 실제 적재 성공을 판단하지 않는다.
 
 Airflow JSON은 기존 StatsD 집계 행과 새 상태 observer 행을 분리한다. observer 행의
 호스트별 수집 상태·현재 태스크/DAG 경과·직전 완료 결과는 각 Airflow 호스트에
