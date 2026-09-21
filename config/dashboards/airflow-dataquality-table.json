@@ -2,7 +2,7 @@
   "title": "Oliveyoung 데이터 정합성 (테이블 소스)",
   "uid": "oliveyoung-dq-table",
   "schemaVersion": 38,
-  "version": 6,
+  "version": 7,
   "refresh": "5m",
   "time": {
     "from": "now-30d",
@@ -934,7 +934,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 23
+        "y": 32
       },
       "id": 109,
       "title": "전처리 오류 유형 · 선택 기간의 최신 실행 (정상)",
@@ -999,7 +999,7 @@
         "h": 8,
         "w": 17,
         "x": 0,
-        "y": 24
+        "y": 33
       },
       "id": 105,
       "options": {
@@ -1100,7 +1100,7 @@
         "h": 3,
         "w": 7,
         "x": 17,
-        "y": 24
+        "y": 33
       },
       "id": 106,
       "options": {
@@ -1163,7 +1163,7 @@
         "h": 2,
         "w": 7,
         "x": 17,
-        "y": 27
+        "y": 36
       },
       "id": 107,
       "options": {
@@ -1228,7 +1228,7 @@
         "h": 3,
         "w": 7,
         "x": 17,
-        "y": 29
+        "y": 38
       },
       "id": 108,
       "options": {
@@ -1278,7 +1278,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 41
+        "y": 50
       },
       "id": 7,
       "title": "수집 안정성 (crawl)",
@@ -1323,7 +1323,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 42
+        "y": 51
       },
       "id": 8,
       "options": {
@@ -1429,7 +1429,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 42
+        "y": 51
       },
       "id": 9,
       "options": {
@@ -1519,7 +1519,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 50
+        "y": 59
       },
       "id": 20,
       "title": "원시 데이터 · 드릴다운 (Iceberg)",
@@ -1542,7 +1542,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 51
+        "y": 60
       },
       "id": 21,
       "options": {
@@ -1614,7 +1614,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 32
+        "y": 41
       },
       "id": 115,
       "title": "전처리 오류 유형 · 선택 기간의 최신 실행 (백필)",
@@ -1679,7 +1679,7 @@
         "h": 8,
         "w": 17,
         "x": 0,
-        "y": 33
+        "y": 42
       },
       "id": 116,
       "options": {
@@ -1780,7 +1780,7 @@
         "h": 3,
         "w": 7,
         "x": 17,
-        "y": 33
+        "y": 42
       },
       "id": 117,
       "options": {
@@ -1843,7 +1843,7 @@
         "h": 2,
         "w": 7,
         "x": 17,
-        "y": 36
+        "y": 45
       },
       "id": 118,
       "options": {
@@ -1908,7 +1908,7 @@
         "h": 3,
         "w": 7,
         "x": 17,
-        "y": 38
+        "y": 47
       },
       "id": 119,
       "options": {
@@ -1951,6 +1951,278 @@
         }
       ],
       "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 23
+      },
+      "id": 120,
+      "title": "입력·정제·오류 계산 결과 (백필)",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "${dq_datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "showPoints": "always",
+            "pointSize": 6,
+            "spanNulls": true,
+            "fillOpacity": 0
+          },
+          "unit": "short",
+          "min": 0,
+          "links": [
+            {
+              "title": "🔎 Iceberg UI 드릴다운",
+              "url": "${iceberg_ui_url}/?view=drilldown&metric=category_failure&catalog=oliveyoung_db&table=oliveyoung_silver_error&snapshot_mode=latest&batch_date=${__data.fields.batch_date}",
+              "targetBlank": true
+            },
+            {
+              "title": "📜 Loki 로그 보기",
+              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"bronze_to_silver\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
+              "targetBlank": true
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "id": 121,
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "description": "입력 행, 정상 출력 행, 오류 레코드의 실행별 계산값. 한 상품의 정상 출력과 잔여 성분 경고가 겹칠 수 있으므로 정상+오류=입력이라는 보존식이 성립하지 않는다. Silver 실제 적재 성공을 증명하는 값도 아니다.",
+      "title": "입력·정제·오류 레코드 (계산값, 백필)",
+      "targets": [
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${dq_datasource}"
+          },
+          "refId": "A",
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "${dq_api_url}/dq/series?stage=bronze_to_silver_backfill&metric=bronze_loaded&from=${__from}&to=${__to}",
+          "url_options": {
+            "method": "GET"
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "created_at",
+              "text": "time",
+              "type": "timestamp"
+            },
+            {
+              "selector": "metric_value",
+              "text": "bronze_loaded",
+              "type": "number"
+            },
+            {
+              "selector": "batch_date",
+              "text": "batch_date",
+              "type": "string"
+            }
+          ],
+          "parser": "backend"
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${dq_datasource}"
+          },
+          "refId": "B",
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "${dq_api_url}/dq/series?stage=bronze_to_silver_backfill&metric=silver_ok&from=${__from}&to=${__to}",
+          "url_options": {
+            "method": "GET"
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "created_at",
+              "text": "time",
+              "type": "timestamp"
+            },
+            {
+              "selector": "metric_value",
+              "text": "silver_ok",
+              "type": "number"
+            },
+            {
+              "selector": "batch_date",
+              "text": "batch_date",
+              "type": "string"
+            }
+          ],
+          "parser": "backend"
+        },
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${dq_datasource}"
+          },
+          "refId": "C",
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "${dq_api_url}/dq/series?stage=bronze_to_silver_backfill&metric=silver_error&from=${__from}&to=${__to}",
+          "url_options": {
+            "method": "GET"
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "created_at",
+              "text": "time",
+              "type": "timestamp"
+            },
+            {
+              "selector": "metric_value",
+              "text": "silver_error",
+              "type": "number"
+            },
+            {
+              "selector": "batch_date",
+              "text": "batch_date",
+              "type": "string"
+            }
+          ],
+          "parser": "backend"
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "${dq_datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "showPoints": "always",
+            "pointSize": 6,
+            "spanNulls": true,
+            "fillOpacity": 0,
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "🔎 Iceberg UI 드릴다운",
+              "url": "${iceberg_ui_url}/?view=drilldown&metric=category_failure&catalog=oliveyoung_db&table=oliveyoung_silver_error&snapshot_mode=latest&batch_date=${__data.fields.batch_date}",
+              "targetBlank": true
+            },
+            {
+              "title": "📜 Loki 로그 보기",
+              "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"bronze_to_silver\\\"}\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}",
+              "targetBlank": true
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "id": 122,
+      "options": {
+        "tooltip": {
+          "mode": "multi"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "description": "기존 error_rate의 실행별 추이. 오류에는 정상 적재와 겹치는 잔여 성분 경고가 포함될 수 있다. 상품 실패율이 아니며 아직 운영 임계값을 확정하지 않았다.",
+      "title": "오류 레코드 비중 추이 (백필, 참고)",
+      "targets": [
+        {
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "${dq_datasource}"
+          },
+          "refId": "A",
+          "type": "json",
+          "source": "url",
+          "format": "table",
+          "url": "${dq_api_url}/dq/series?stage=bronze_to_silver_backfill&metric=error_rate&from=${__from}&to=${__to}",
+          "url_options": {
+            "method": "GET"
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "created_at",
+              "text": "time",
+              "type": "timestamp"
+            },
+            {
+              "selector": "metric_value",
+              "text": "error_rate",
+              "type": "number"
+            },
+            {
+              "selector": "batch_date",
+              "text": "batch_date",
+              "type": "string"
+            }
+          ],
+          "parser": "backend"
+        }
+      ],
+      "type": "timeseries"
     }
   ],
   "templating": {
