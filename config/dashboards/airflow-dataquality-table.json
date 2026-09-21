@@ -1250,16 +1250,20 @@
       "options": {
         "orientation": "horizontal",
         "xField": "error_type",
-        "colorByField": "class",
-        "showValue": "always",
-        "barWidth": 0.7,
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0,
+        "showValue": "never",
+        "barWidth": 0.97,
         "groupWidth": 0.7,
         "stacking": "none",
         "tooltip": {
           "mode": "single"
         },
         "legend": {
-          "displayMode": "hidden"
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "right",
+          "calcs": []
         }
       },
       "description": "선택 기간에 기록된 최신 bronze→silver 실행(created_at 기준)의 오류 레코드 건수. REJECTED는 제외 유형, UNMAPPED_RESIDUAL은 정상 적재와 겹칠 수도 있는 잔여 성분이다. 상품 수가 아니며, 오른쪽 집계 상태가 정상일 때만 막대가 표시된다. 신규 유형은 자동으로 추가된다.",
@@ -1357,7 +1361,7 @@
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "",
+          "fields": "/^status$/",
           "values": false
         }
       },
@@ -1420,7 +1424,7 @@
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "",
+          "fields": "/^batch_date$/",
           "values": false
         }
       },
@@ -1745,16 +1749,20 @@
       "options": {
         "orientation": "horizontal",
         "xField": "error_type",
-        "colorByField": "class",
-        "showValue": "always",
-        "barWidth": 0.7,
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0,
+        "showValue": "never",
+        "barWidth": 0.97,
         "groupWidth": 0.7,
         "stacking": "none",
         "tooltip": {
           "mode": "single"
         },
         "legend": {
-          "displayMode": "hidden"
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "right",
+          "calcs": []
         }
       },
       "description": "선택 기간에 기록된 최신 bronze→silver 실행(created_at 기준)의 오류 레코드 건수. REJECTED는 제외 유형, UNMAPPED_RESIDUAL은 정상 적재와 겹칠 수도 있는 잔여 성분이다. 상품 수가 아니며, 오른쪽 집계 상태가 정상일 때만 막대가 표시된다. 신규 유형은 자동으로 추가된다.",
@@ -1852,7 +1860,7 @@
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "",
+          "fields": "/^status$/",
           "values": false
         }
       },
@@ -1915,7 +1923,7 @@
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "",
+          "fields": "/^batch_date$/",
           "values": false
         }
       },
