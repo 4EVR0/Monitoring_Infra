@@ -159,7 +159,7 @@
                       "columns": [
                         {
                           "selector": "metric_value",
-                          "text": "value",
+                          "text": "정상",
                           "type": "number"
                         }
                       ],
@@ -177,6 +177,39 @@
                   },
                   "refId": "A"
                 }
+              },
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "metric_value",
+                          "text": "백필",
+                          "type": "number"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/latest?stage=bronze_to_silver_backfill&metric=error_rate&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "B"
+                }
               }
             ],
             "queryOptions": {},
@@ -186,7 +219,7 @@
         "description": "기존 error_rate = 오류 레코드/(정상 출력 행+오류 레코드). Silver에 적재되는 상품의 잔여 성분 경고도 오류에 포함될 수 있어 상품 제외율이나 적재 실패율이 아니다. 분모도 중복될 수 있으므로 임계 판정 대신 추이 참고용으로만 사용한다.",
         "id": 102,
         "links": [],
-        "title": "오류 레코드 비중 (정상, 참고)",
+        "title": "오류 레코드 비중 (참고)",
         "vizConfig": {
           "group": "stat",
           "kind": "VizConfig",
@@ -1963,7 +1996,7 @@
                     "spec": {
                       "columns": [
                         {
-                          "selector": "created_at",
+                          "selector": "batch_date",
                           "text": "time",
                           "type": "timestamp"
                         },
@@ -2006,7 +2039,7 @@
                     "spec": {
                       "columns": [
                         {
-                          "selector": "created_at",
+                          "selector": "batch_date",
                           "text": "time",
                           "type": "timestamp"
                         },
@@ -2049,7 +2082,7 @@
                     "spec": {
                       "columns": [
                         {
-                          "selector": "created_at",
+                          "selector": "batch_date",
                           "text": "time",
                           "type": "timestamp"
                         },
@@ -2078,13 +2111,144 @@
                   },
                   "refId": "C"
                 }
+              },
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "batch_date",
+                          "text": "time",
+                          "type": "timestamp"
+                        },
+                        {
+                          "selector": "metric_value",
+                          "text": "bronze_loaded_백필",
+                          "type": "number"
+                        },
+                        {
+                          "selector": "batch_date",
+                          "text": "batch_date",
+                          "type": "string"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/series?stage=bronze_to_silver_backfill&metric=bronze_loaded&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "D"
+                }
+              },
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "batch_date",
+                          "text": "time",
+                          "type": "timestamp"
+                        },
+                        {
+                          "selector": "metric_value",
+                          "text": "silver_ok_백필",
+                          "type": "number"
+                        },
+                        {
+                          "selector": "batch_date",
+                          "text": "batch_date",
+                          "type": "string"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/series?stage=bronze_to_silver_backfill&metric=silver_ok&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "E"
+                }
+              },
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "batch_date",
+                          "text": "time",
+                          "type": "timestamp"
+                        },
+                        {
+                          "selector": "metric_value",
+                          "text": "silver_error_백필",
+                          "type": "number"
+                        },
+                        {
+                          "selector": "batch_date",
+                          "text": "batch_date",
+                          "type": "string"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/series?stage=bronze_to_silver_backfill&metric=silver_error&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "F"
+                }
               }
             ],
-            "queryOptions": {},
+            "queryOptions": {
+              "timeFrom": "180d"
+            },
             "transformations": []
           }
         },
-        "description": "입력 행, 정상 출력 행, 오류 레코드의 실행별 계산값. 한 상품의 정상 출력과 잔여 성분 경고가 겹칠 수 있으므로 정상+오류=입력이라는 보존식이 성립하지 않는다. Silver 실제 적재 성공을 증명하는 값도 아니다.",
+        "description": "입력 행, 정상 출력 행, 오류 레코드의 실행별 계산값. 한 상품의 정상 출력과 잔여 성분 경고가 겹칠 수 있으므로 정상+오류=입력이라는 보존식이 성립하지 않는다. Silver 실제 적재 성공을 증명하는 값도 아니다. x축은 논리 배치일(batch_date)이며, 점선(_백필)은 stage=bronze_to_silver_backfill 값이다. 과거 배치가 잘리지 않도록 패널 기간을 최근 180일로 고정한다.",
         "id": 5,
         "links": [],
         "title": "입력·정제·오류 레코드 (계산값)",
@@ -2159,7 +2323,26 @@
                 },
                 "unit": "short"
               },
-              "overrides": []
+              "overrides": [
+                {
+                  "matcher": {
+                    "id": "byRegexp",
+                    "options": ".*_백필$"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.lineStyle",
+                      "value": {
+                        "fill": "dash",
+                        "dash": [
+                          10,
+                          10
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
             },
             "options": {
               "annotations": {
@@ -2203,7 +2386,7 @@
                     "spec": {
                       "columns": [
                         {
-                          "selector": "created_at",
+                          "selector": "batch_date",
                           "text": "time",
                           "type": "timestamp"
                         },
@@ -2232,13 +2415,58 @@
                   },
                   "refId": "A"
                 }
+              },
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "batch_date",
+                          "text": "time",
+                          "type": "timestamp"
+                        },
+                        {
+                          "selector": "metric_value",
+                          "text": "error_rate_백필",
+                          "type": "number"
+                        },
+                        {
+                          "selector": "batch_date",
+                          "text": "batch_date",
+                          "type": "string"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/series?stage=bronze_to_silver_backfill&metric=error_rate&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "B"
+                }
               }
             ],
-            "queryOptions": {},
+            "queryOptions": {
+              "timeFrom": "180d"
+            },
             "transformations": []
           }
         },
-        "description": "기존 error_rate의 실행별 추이. 오류에는 정상 적재와 겹치는 잔여 성분 경고가 포함될 수 있다. 상품 실패율이 아니며 아직 운영 임계값을 확정하지 않았다.",
+        "description": "기존 error_rate의 실행별 추이. 오류에는 정상 적재와 겹치는 잔여 성분 경고가 포함될 수 있다. 상품 실패율이 아니며 아직 운영 임계값을 확정하지 않았다. x축은 논리 배치일(batch_date)이며, 점선(_백필)은 stage=bronze_to_silver_backfill 값이다. 과거 배치가 잘리지 않도록 패널 기간을 최근 180일로 고정한다.",
         "id": 6,
         "links": [],
         "title": "오류 레코드 비중 추이 (참고)",
@@ -2311,7 +2539,41 @@
                 },
                 "unit": "percentunit"
               },
-              "overrides": []
+              "overrides": [
+                {
+                  "matcher": {
+                    "id": "byRegexp",
+                    "options": ".*_백필$"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.lineStyle",
+                      "value": {
+                        "fill": "dash",
+                        "dash": [
+                          10,
+                          10
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "error_rate_백필"
+                  },
+                  "properties": [
+                    {
+                      "id": "color",
+                      "value": {
+                        "fixedColor": "orange",
+                        "mode": "fixed"
+                      }
+                    }
+                  ]
+                }
+              ]
             },
             "options": {
               "annotations": {
