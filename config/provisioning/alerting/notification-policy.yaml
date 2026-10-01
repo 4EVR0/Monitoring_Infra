@@ -13,6 +13,16 @@ policies:
     group_interval: 5m         # 그룹에 새 알림 추가 시 재전송 간격
     repeat_interval: 4h        # 계속 firing이면 재알림 주기 (스팸 방지로 넉넉히)
     routes:
+      # 배치 품질 알림(kind=batch_quality)은 기록(created_at) 1건당 1회만 보낸다.
+      # 끝난 배치를 4h마다 재알림하지 않게(9/30 반복 알림 사건). 다음 배치 기록이 오면 새 알림.
+      # 해소 알림 없음(discord 연결처): 새 기록이 오면 이전 인스턴스가 사라져 "해소"되는데 진짜 복구가 아니라서.
+      - receiver: discord
+        object_matchers:
+          - ['kind', '=', 'batch_quality']
+        group_by: [alertname, created_at]
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 120h   # 사실상 1회(배치 주기 ~3일). 기록이 120h 넘게 그대로면 1회 더(#1a 신선도와 함께)
       # 시스템 메트릭 알림(board=system)은 해소(✅) 켠 discord-system으로 라우팅.
       # 매칭되면 여기서 멈춤(기본 continue=false) → 파이프라인 연결처로 중복 안 감.
       - receiver: discord-system
