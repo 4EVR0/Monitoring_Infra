@@ -39,12 +39,13 @@ docs/                           운영 컨텍스트·계획 (gitignore)
 ## 수집 방식
 
 ```
-Airflow (EC2 · 홈서버)  ──Alloy push──▶  메트릭 → Prometheus / 로그 → Loki
+Airflow (EC2 · 홈서버)  ──Alloy push──▶  StatsD·REST 상태 → Prometheus / 로그 → Loki
 vLLM 추론 서버           ──Prometheus pull──▶  /metrics
 추천 앱 (FastAPI)        ──pull(메트릭) + Alloy push(로그)──▶  Prometheus / Loki
 ```
 
 - 망이 다르거나 단발성인 소스는 **push**(Alloy remote_write·Loki push), 상시 떠 있는 소스는 **pull** 로 받는다
+- 각 Airflow 호스트의 `airflow-observer`가 로컬 REST API를 읽어 현재/직전 DAG·태스크 상태를 노출하고, Alloy가 이를 함께 push한다. `수집 실패`와 `활성 실행 0건`을 별도 상태로 구분한다
 - 로그·메트릭 라벨을 `job` / `host` / `dag_id` / `task_id` 로 맞춰, Grafana 에서 메트릭 패널 → 해당 로그로 바로 점프한다
 - 카디널리티가 큰 값(run_id, trace_id 등)은 라벨 대신 LogQL 필터 / structured metadata 로 처리한다
 
@@ -54,13 +55,20 @@ vLLM 추론 서버           ──Prometheus pull──▶  /metrics
 
 | 파일 | 내용 |
 |------|------|
-| `airflow.json` | DAG/태스크 실행, 호스트 지표, 로그 점프 |
+| `airflow.json` | StatsD 실행 통계 + REST observer의 호스트별 수집 상태·현재 실행·직전 완료 결과, 로그 점프 |
 | `airflow-dataquality.json` | 파이프라인 데이터 품질 지표 (Loki 로그 기반) |
-| `airflow-dataquality-table.json` | 정합성 지표 (Iceberg `dq_metrics` → dq_api, Infinity 소스) |
+| `airflow-dataquality-table.json` | 정상/백필 정합성 추이와 전처리 오류 유형 (Iceberg `dq_metrics` → dq_api, Infinity 소스) |
 | `vllm.json` | vLLM 처리량·지연(TTFT/TPOT)·KV 캐시 + 추천 앱 단계별 latency |
 | `neo4j.json` | Neo4j(GraphDB) 상태 |
 
 레포의 대시보드는 데이터소스를 입력 변수로 두어, 다른 환경에서도 임포트 시 datasource 만 고르면 된다.
+
+Airflow·DQ 대시보드는 현재 자동 provisioning 대상이 아니므로 JSON 변경 후 기존 UID
+(`airflow-monitoring`, `oliveyoung-dq-table`)에 직접 임포트해야 한다. DQ 화면은
+`bronze_to_silver`와 `bronze_to_silver_backfill`을 분리해 표시하며, 오류 유형 패널은
+`/dq/error-types`가 선택 기간의 최신 실행 한 건을 집계한다. `no_breakdown`은 구버전 실행처럼
+유형별 `err_*` 기록이 없다는 뜻이고, `incomplete`는 `silver_error`와 유형 합계가 다르다는 뜻이다.
+상세 배포·검증 절차는 [`config/dashboards/README.md`](config/dashboards/README.md)를 따른다.
 
 ## 알림 (Discord 2트랙)
 
