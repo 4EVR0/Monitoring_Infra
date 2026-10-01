@@ -19,13 +19,22 @@ Grafana(Infinity 데이터소스)가 바로 쓰는 JSON을 반환한다. 특정 
 
 | 메서드 · 경로 | 용도 |
 |---|---|
-| `GET /health` | 헬스체크 |
-| `GET /dq/latest?stage=&metric=` | 최신 run 값 1건 (점수판 stat 타일) |
-| `GET /dq/series?stage=&metric=&days=29` | 최근 N일 시계열 (추세 패널) |
-| `GET /dq/rows?stage=&metric=&limit=200` | 최근 원시 행 (표/드릴다운) |
+| `GET /health` | 캐시를 무시한 Iceberg/S3 실제 스캔 헬스체크 |
+| `GET /dq/latest?stage=&metric=&from=&to=` | 선택 기간의 최신 run 값 1건 (점수판 stat 타일) |
+| `GET /dq/series?stage=&metric=&from=&to=` | 선택 기간 시계열 (`from`/`to` 미지정 시 `days=29`) |
+| `GET /dq/freshness?stage=` | stage별 마지막 기록 시각과 경과 시간 |
+| `GET /dq/pipeline-lag` | 최신 crawl 대비 silver_to_gold 상대 지연 |
+| `GET /dq/rows?stage=&metric=&from=&to=&limit=200` | 최근 원시 행 (표/드릴다운) |
+| `GET /dq/error-types?stage=&from=&to=` | 선택 기간의 최신 전처리 실행 한 건에 대한 오류 유형별 건수와 집계 상태 |
 
-`stage`: `crawl` / `bronze_to_silver` / `silver_to_gold`
+`stage`: `crawl` / `bronze_to_silver` / `bronze_to_silver_backfill` / `silver_to_gold`
 `metric`: `match_rate`, `error_rate`, `categories_failed` 등
+
+`from`/`to`는 Grafana가 넘기는 epoch millisecond다. `/dq/error-types`는 `silver_error`를
+마커로 선택 기간의 최신 실행 한 건을 고르고, 같은 run의 `err_*` 합계를 비교한다.
+`status`는 `ok`, `no_breakdown`(유형별 기록 없음), `incomplete`(합계 불일치),
+`no_data_in_range`, `no_data` 중 하나다. `ok`가 아니면 `rows`를 빈 배열로 반환해
+부분 집계를 정상 막대로 표시하지 않는다.
 
 ## 환경변수
 
@@ -74,8 +83,9 @@ docker run -d --name dq_api -p 8000:8000 --env-file .env dq_api
 ## 검증
 
 ```bash
-curl localhost:8000/health              # {"status":"ok",...} — env 안 타서 무조건 됨
-curl "localhost:8000/dq/rows?limit=5"   # 실제 dq_metrics 행 — 여기서 AWS/IAM 실제로 탐
+curl localhost:8000/health              # 실제 Iceberg/S3 스캔 성공 시 {"status":"ok",...}
+curl "localhost:8000/dq/rows?limit=5"   # 실제 dq_metrics 행 조회
 ```
 
-`/health`는 되는데 `/dq/rows`가 실패하면 크레덴셜/권한 문제 → 위 IMDS·IAM 항목 확인.
+`/health`가 `503`이면 테이블·크레덴셜·IAM·S3 연결을 확인한다. 이 경로는 캐시를 쓰지 않아
+장기 구동 중 TLS/S3 접근 장애도 감지하며, Compose healthcheck 실패 시 autoheal이 컨테이너를 재시작한다.
