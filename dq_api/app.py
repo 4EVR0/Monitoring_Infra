@@ -197,17 +197,28 @@ def pipeline_lag():
       · 정상: 전처리가 crawl 직후 따라옴 → lag ≈ 0 (음수면 0 이하)
       · 이상: 새 crawl 뒤 전처리 실패/지연 → lag 증가 → Grafana 룰이 >1h 판정
     (전처리가 역대 한 번도 안 돈 극단 케이스는 lag=NULL → 미알림. #2 DAG 실패 알림이 커버)
+    입력 품질 게이트가 보류(gate_status=2)했고 아직 silver_to_gold가 없는 batch_date의 crawl은 제외한다.
+    의도된 보류라 "전처리 지연"으로 반복 알리지 않는다(보류 알림 #9가 따로 1회 알림).
     """
     return _query(
         """
+        WITH blocked AS (
+            SELECT DISTINCT batch_date FROM dq
+            WHERE stage = 'bronze_gate' AND metric_name = 'gate_status' AND metric_value = 2
+              AND batch_date NOT IN (SELECT batch_date FROM dq WHERE stage = 'silver_to_gold')
+        ),
+        crawl AS (
+            SELECT MAX(created_at) AS t FROM dq
+            WHERE stage = 'crawl' AND batch_date NOT IN (SELECT batch_date FROM blocked)
+        ),
+        gold AS (
+            SELECT MAX(created_at) AS t FROM dq WHERE stage = 'silver_to_gold'
+        )
         SELECT
-            MAX(created_at) FILTER (WHERE stage = 'crawl')          AS crawl_last_run,
-            MAX(created_at) FILTER (WHERE stage = 'silver_to_gold') AS silver_last_run,
-            round(epoch(
-                MAX(created_at) FILTER (WHERE stage = 'crawl')
-                - MAX(created_at) FILTER (WHERE stage = 'silver_to_gold')
-            ) / 3600.0, 1) AS lag_hours
-        FROM dq
+            crawl.t AS crawl_last_run,
+            gold.t  AS silver_last_run,
+            round(epoch(crawl.t - gold.t) / 3600.0, 1) AS lag_hours
+        FROM crawl, gold
         """,
         [],
     )
