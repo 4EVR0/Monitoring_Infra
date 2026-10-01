@@ -1,4 +1,4 @@
-# Grafana 알림 룰 8종 — as-code provisioning
+# Grafana 알림 룰 — as-code provisioning
 #
 # 데이터소스 UID·임계치는 라이브 서버(2026-07-16)에서 확보해 반영:
 #   Prometheus       = cfltz3i4tlfr4e
@@ -102,6 +102,43 @@ groups:
               conditions:
                 - evaluator: { type: lt, params: [1] }   # 5분간 heartbeat < 1건 = 다운
 
+      # #10 크롤 장기 실행 — REST observer 기준 크롤 DAG run이 60h 넘게 running(정상 최대 ~48h).
+      # 크롤 DQ는 끝나야 기록되므로, 멈춤·장기화를 신선도(#1a)보다 먼저 잡는다. 상태형(4h 반복).
+      - uid: alert-crawl-long-running
+        title: 크롤 장기 실행
+        condition: C
+        for: 10m
+        noDataState: OK   # 실행 중인 크롤 없음 = 정상. observer 끊김은 S5가 잡음
+        execErrState: OK
+        labels:
+          severity: warning
+          pipeline: 크롤링
+        annotations:
+          summary: '크롤 DAG가 {{ printf "%.1f" $values.B.Value }}시간째 실행 중입니다(임계 60h, 정상 최대 ~48h).'
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: cfltz3i4tlfr4e
+            model:
+              refId: A
+              editorMode: code
+              expr: '(time() - max by (host) (airflow_observer_dag_active_run_start_timestamp_seconds{dag_id="oliveyoung_crawling", state="running"})) / 3600'
+              instant: true
+              range: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, reducer: last, expression: A }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [60] }
+
   # ── Infinity(dq_api) 소스: 데이터 신선도·품질 알림 (10분 간격) ────────────
   # dq_api는 요청마다 Iceberg 풀스캔 → 자주 때리지 않도록 간격을 넉넉히.
   - orgId: 1
@@ -109,18 +146,19 @@ groups:
     folder: 4evr0-alerts
     interval: 10m
     rules:
-      # #1a crawl 신선도 — 크롤이 96h(≈4일) 넘게 안 돎 (크롤 주기 3일 + 버퍼)
+      # #1a crawl 신선도 — 마지막 crawl 기록이 120h 넘게 없음.
+      # 정상 최대 간격 ≈ 주기 72h + 최대 소요 48h − 최소 소요 ~24h ≈ 96h(실측 최대 95h) + 하루 여유
       - uid: alert-crawl-freshness
         title: crawl 신선도
         condition: C
-        for: 0m           # age>96h는 이미 오래 지속된 상태
+        for: 0m           # age>120h는 이미 오래 지속된 상태
         noDataState: OK
         execErrState: OK
         labels:
           severity: warning
           pipeline: 크롤링
         annotations:
-          summary: 'crawl 파이프라인이 96시간 넘게 실행되지 않았습니다 (age {{ printf "%.1f" $values.B.Value }}h).'
+          summary: 'crawl 파이프라인이 120시간 넘게 완료 기록이 없습니다 (age {{ printf "%.1f" $values.B.Value }}h).'
         data:
           - refId: A
             relativeTimeRange: { from: 600, to: 0 }
@@ -147,7 +185,7 @@ groups:
               type: threshold
               expression: B
               conditions:
-                - evaluator: { type: gt, params: [96] }
+                - evaluator: { type: gt, params: [120] }
 
       # #1b 전처리 지연 — 새 crawl 뒤 전처리(silver_to_gold)가 1h 넘게 못 따라옴
       - uid: alert-preprocess-lag
@@ -199,6 +237,7 @@ groups:
         labels:
           severity: warning
           pipeline: 전처리
+          kind: batch_quality   # 배치 품질 — 기록 1건당 1회 알림(notification-policy)
         annotations:
           summary: 'silver_to_gold match_rate가 임계치 미만입니다 (값 {{ printf "%.3f" $values.B.Value }}).'
         data:
@@ -217,6 +256,8 @@ groups:
               root_selector: ""
               columns:
                 - { selector: metric_value, text: metric_value, type: number }
+                - { selector: created_at, text: created_at, type: string }   # 기록 1건 = 알림 인스턴스 1개
+                - { selector: batch_date, text: batch_date, type: string }   # 메시지 배치 표시용
           - refId: B
             datasourceUid: __expr__
             model: { refId: B, type: reduce, reducer: last, expression: A }
@@ -230,6 +271,7 @@ groups:
                 - evaluator: { type: lt, params: [0.95] }
 
       # #5 빈 카테고리 — 크롤됐지만 상품 0개인 카테고리 발생 (에러 없는 조용한 데이터 손실)
+      # [과도기] 입력 품질 게이트(#8·#9) 첫 실행 확인 후 삭제 예정
       - uid: alert-crawl-categories-zero
         title: 빈 카테고리
         condition: C
@@ -239,6 +281,7 @@ groups:
         labels:
           severity: warning
           pipeline: 크롤링
+          kind: batch_quality   # 배치 품질 — 기록 1건당 1회 알림(notification-policy)
         annotations:
           summary: '크롤됐지만 상품 0개인 카테고리가 있습니다 ({{ printf "%.0f" $values.B.Value }}개).'
         data:
@@ -257,6 +300,8 @@ groups:
               root_selector: ""
               columns:
                 - { selector: metric_value, text: metric_value, type: number }
+                - { selector: created_at, text: created_at, type: string }   # 기록 1건 = 알림 인스턴스 1개
+                - { selector: batch_date, text: batch_date, type: string }   # 메시지 배치 표시용
           - refId: B
             datasourceUid: __expr__
             model: { refId: B, type: reduce, reducer: last, expression: A }
@@ -270,6 +315,7 @@ groups:
                 - evaluator: { type: gt, params: [0] }
 
       # #6 수집량 급감 — crawl 수집 상품이 비정상적으로 적음 (크롤 대량실패, 07-05에 751로 폭락)
+      # [과도기] 입력 품질 게이트(#8·#9) 첫 실행 확인 후 삭제 예정
       - uid: alert-crawl-products-low
         title: 수집량 급감
         condition: C
@@ -279,6 +325,7 @@ groups:
         labels:
           severity: warning
           pipeline: 크롤링
+          kind: batch_quality   # 배치 품질 — 기록 1건당 1회 알림(notification-policy)
         annotations:
           summary: 'crawl 수집 상품이 비정상적으로 적습니다 ({{ printf "%.0f" $values.B.Value }}건, 임계 1500).'
         data:
@@ -297,6 +344,8 @@ groups:
               root_selector: ""
               columns:
                 - { selector: metric_value, text: metric_value, type: number }
+                - { selector: created_at, text: created_at, type: string }   # 기록 1건 = 알림 인스턴스 1개
+                - { selector: batch_date, text: batch_date, type: string }   # 메시지 배치 표시용
           - refId: B
             datasourceUid: __expr__
             model: { refId: B, type: reduce, reducer: last, expression: A }
@@ -319,6 +368,7 @@ groups:
         labels:
           severity: warning
           pipeline: 전처리
+          kind: batch_quality   # 배치 품질 — 기록 1건당 1회 알림(notification-policy)
         annotations:
           summary: 'bronze→silver 오류율이 임계치를 초과했습니다 (값 {{ printf "%.3f" $values.B.Value }}, 임계 0.7).'
         data:
@@ -337,6 +387,8 @@ groups:
               root_selector: ""
               columns:
                 - { selector: metric_value, text: metric_value, type: number }
+                - { selector: created_at, text: created_at, type: string }   # 기록 1건 = 알림 인스턴스 1개
+                - { selector: batch_date, text: batch_date, type: string }   # 메시지 배치 표시용
           - refId: B
             datasourceUid: __expr__
             model: { refId: B, type: reduce, reducer: last, expression: A }
@@ -348,6 +400,92 @@ groups:
               expression: B
               conditions:
                 - evaluator: { type: gt, params: [0.7] }
+
+      # #8 크롤 품질 경고 — 전처리 입력 품질 게이트 판정 1(경고). 판정 기준은 Oliveyoung_Pipeline src/bronze_gate 한 곳
+      - uid: alert-gate-warn
+        title: 크롤 품질 경고
+        condition: C
+        for: 0m
+        noDataState: OK   # 게이트 기록 전(배포 직후)에는 조용
+        execErrState: OK
+        labels:
+          severity: warning
+          pipeline: 크롤링
+          kind: batch_quality
+        annotations:
+          summary: '입력 품질 게이트 경고 — 연속 누락·대량 누락·수집률 미달 등. 사유는 "입력 품질 게이트" 리포트를 확인하세요.'
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: efqsx4w1y7caof
+            model:
+              refId: A
+              datasource: { type: yesoreyeram-infinity-datasource, uid: efqsx4w1y7caof }
+              type: json
+              source: url
+              parser: backend
+              format: table
+              url: http://dq_api:8000/dq/latest?stage=bronze_gate&metric=gate_status
+              url_options: { method: GET }
+              root_selector: ""
+              columns:
+                - { selector: metric_value, text: metric_value, type: number }
+                - { selector: created_at, text: created_at, type: string }   # 기록 1건 = 알림 인스턴스 1개
+                - { selector: batch_date, text: batch_date, type: string }   # 메시지 배치 표시용
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, reducer: last, expression: A }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: within_range, params: [0.5, 1.5] }   # gate_status=1
+
+      # #9 전처리 보류 — 게이트 판정 2(보류). 하류(Gold·CDC·Neo4j) 미반영 상태. 진행은 conf gate: skip
+      - uid: alert-gate-block
+        title: 전처리 보류
+        condition: C
+        for: 0m
+        noDataState: OK   # 게이트 기록 전(배포 직후)에는 조용
+        execErrState: OK
+        labels:
+          severity: critical
+          pipeline: 전처리
+          kind: batch_quality
+        annotations:
+          summary: '입력 품질 게이트가 전처리를 보류했습니다(부분 수집 입력 등). 사유는 "입력 품질 게이트" 리포트를 확인하세요.'
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: efqsx4w1y7caof
+            model:
+              refId: A
+              datasource: { type: yesoreyeram-infinity-datasource, uid: efqsx4w1y7caof }
+              type: json
+              source: url
+              parser: backend
+              format: table
+              url: http://dq_api:8000/dq/latest?stage=bronze_gate&metric=gate_status
+              url_options: { method: GET }
+              root_selector: ""
+              columns:
+                - { selector: metric_value, text: metric_value, type: number }
+                - { selector: created_at, text: created_at, type: string }   # 기록 1건 = 알림 인스턴스 1개
+                - { selector: batch_date, text: batch_date, type: string }   # 메시지 배치 표시용
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, reducer: last, expression: A }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: within_range, params: [1.5, 2.5] }   # gate_status=2 (3=우회 진행은 미발화)
 
   # ── node-exporter 소스: 시스템 리소스 알림 (1분 간격, 해소 O) ─────────────
   # airflow 호스트(EC2/홈서버)의 디스크·메모리·노드 생존. Alloy가 remote_write하는
@@ -491,6 +629,46 @@ groups:
               refId: A
               editorMode: code
               expr: 'count by(host) (up{job="airflow-node"} offset 15m) unless count by(host) (up{job="airflow-node"})'
+              instant: true
+              range: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, reducer: last, expression: A }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+
+      # S5 관측 수집 실패 — Airflow REST observer가 15분 내내 수집 실패(호스트별),
+      # 또는 크롤 호스트(home-server)의 observer 시리즈 자체가 15분째 없음.
+      # observer 기반 알림(#10)이 데이터 없음으로 조용해지는 것을 잡는다(EIP 사건 같은 "조용한 끊김").
+      # EC2는 비용 절감으로 끌 수 있어 부재 검사는 home-server만.
+      - uid: alert-observer-down
+        title: 관측 수집 실패
+        condition: C
+        for: 0m
+        noDataState: OK
+        execErrState: OK
+        labels:
+          severity: warning
+          board: system
+          component: 관측(observer)
+        annotations:
+          summary: '{{ $labels.host }} Airflow REST observer 수집이 15분 넘게 실패하거나 메트릭이 없습니다.'
+        data:
+          - refId: A
+            relativeTimeRange: { from: 900, to: 0 }
+            datasourceUid: cfltz3i4tlfr4e
+            model:
+              refId: A
+              editorMode: code
+              expr: '((max by (host) (max_over_time(airflow_observer_collection_success[15m])) == 0) + 1) or absent_over_time(airflow_observer_collection_success{host="home-server"}[15m])'
               instant: true
               range: false
               intervalMs: 1000
