@@ -23,7 +23,7 @@ Grafana(Infinity 데이터소스)가 바로 쓰는 JSON을 반환한다. 특정 
 | `GET /dq/latest?stage=&metric=&from=&to=` | 선택 기간의 최신 run 값 1건 (점수판 stat 타일) |
 | `GET /dq/series?stage=&metric=&from=&to=` | 선택 기간 시계열 (`from`/`to` 미지정 시 `days=29`) |
 | `GET /dq/freshness?stage=` | stage별 마지막 기록 시각과 경과 시간 |
-| `GET /dq/pipeline-lag` | 최신 crawl 대비 silver_to_gold 상대 지연 |
+| `GET /dq/pipeline-lag` | 최신 crawl 뒤 silver_to_gold가 아직 안 끝나 밀린 시간(끝났으면 0, 게이트 보류 배치 제외) |
 | `GET /dq/rows?stage=&metric=&from=&to=&limit=200` | 최근 원시 행 (표/드릴다운) |
 | `GET /dq/error-types?stage=&from=&to=` | 선택 기간의 최신 전처리 실행 한 건에 대한 오류 유형별 건수와 집계 상태 |
 
