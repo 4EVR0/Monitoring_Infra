@@ -16,8 +16,8 @@ Grafana Unified Alerting을 provisioning YAML로 관리한다. Grafana 부팅 �
 
 | # | 알림 | pipeline | 소스 · 조건 |
 |---|------|------|------|
-| 1a | crawl 신선도 | 크롤링 | `/dq/freshness?stage=crawl` · `age_hours > 96` |
-| 1b | 전처리 지연 | 전처리 | `/dq/pipeline-lag` · `lag_hours > 1` |
+| 1a | crawl 신선도 | 크롤링 | `/dq/freshness?stage=crawl` · `age_hours > 120` |
+| 1b | 전처리 지연 | 전처리 | `/dq/pipeline-lag` · `lag_hours > 1` (최신 crawl 뒤 전처리가 안 끝난 시간) |
 | 2 | DAG 실패 | 파이프라인 | Prometheus · `increase(airflow_dagrun_duration_failed_count[10m]) > 0` |
 | 3 | 스케줄러 다운 | 파이프라인 | Prometheus · `increase(airflow_scheduler_heartbeat[5m]) < 1` |
 | 4 | 품질 급락(match_rate) | 전처리 | `/dq/latest?stage=silver_to_gold&metric=match_rate` · `< 0.95` |

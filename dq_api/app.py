@@ -189,13 +189,13 @@ def freshness(
 
 @app.get("/dq/pipeline-lag")
 def pipeline_lag():
-    """전처리 DAG가 최신 crawl을 얼마나 못 따라잡았나(lag_hours). 전처리 지연 알림용.
+    """최신 crawl 뒤 전처리가 아직 안 끝나 밀려 있는 시간(lag_hours). 전처리 지연 알림용.
 
-    전처리는 crawl 완료 시 트리거되므로 절대 신선도(1h 등)로는 못 잰다
-    (crawl 주기가 3~4일이라 절대 age는 늘 크다) → crawl 대비 상대 지연으로 판정.
-    lag_hours = crawl 마지막 실행 − silver_to_gold(전처리 종단) 마지막 실행.
-      · 정상: 전처리가 crawl 직후 따라옴 → lag ≈ 0 (음수면 0 이하)
-      · 이상: 새 crawl 뒤 전처리 실패/지연 → lag 증가 → Grafana 룰이 >1h 판정
+    lag_hours = 최신 crawl이 마지막 silver_to_gold보다 새로우면 (지금 − 최신 crawl), 아니면 0.
+      · 정상: crawl 후 수 분 안에 전처리 완료 → 밀린 시간 0~수 분
+      · 이상: 새 crawl 뒤 전처리 실패/지연 → 시간이 흐를수록 증가 → Grafana 룰이 >1h 판정
+    이전 정의(crawl − 직전 silver_to_gold)는 crawl 기록~전처리 완료 사이 몇 분 동안
+    "이번 crawl − 지난 전처리(~3일)"가 돼 오탐을 냈다(2026-10-05 61h 오탐).
     (전처리가 역대 한 번도 안 돈 극단 케이스는 lag=NULL → 미알림. #2 DAG 실패 알림이 커버)
     입력 품질 게이트가 보류(gate_status=2)했고 아직 silver_to_gold가 없는 batch_date의 crawl은 제외한다.
     의도된 보류라 "전처리 지연"으로 반복 알리지 않는다(보류 알림 #9가 따로 1회 알림).
@@ -217,7 +217,11 @@ def pipeline_lag():
         SELECT
             crawl.t AS crawl_last_run,
             gold.t  AS silver_last_run,
-            round(epoch(crawl.t - gold.t) / 3600.0, 1) AS lag_hours
+            CASE
+                WHEN crawl.t IS NULL OR gold.t IS NULL THEN NULL
+                WHEN crawl.t > gold.t THEN round(epoch(now() - crawl.t) / 3600.0, 1)
+                ELSE 0.0
+            END AS lag_hours
         FROM crawl, gold
         """,
         [],
