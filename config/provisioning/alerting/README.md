@@ -9,10 +9,10 @@ Grafana Unified Alerting을 provisioning YAML로 관리한다. Grafana 부팅 �
 | 파일 | 역할 |
 |------|------|
 | `contact-points.yaml` | Discord 연결처. 웹훅 URL `${DISCORD_ALERT_WEBHOOK_URL}` 참조 + 메시지 디자인(스타일 B) title/message 인라인 |
-| `notification-policy.yaml` | 모든 알림 → discord 라우팅 |
-| `rules.yaml` | 알림 룰 8종 |
+| `notification-policy.yaml` | 기본 → discord(4h 반복) / `kind=batch_quality` → discord(기록 1건당 1회, 120h) / `board=system` → discord-system(해소 ✅) |
+| `rules.yaml` | 알림 룰 14종 |
 
-## 알림 8종
+## 알림 14종
 
 | # | 알림 | pipeline | 소스 · 조건 |
 |---|------|------|------|
@@ -21,13 +21,18 @@ Grafana Unified Alerting을 provisioning YAML로 관리한다. Grafana 부팅 �
 | 2 | DAG 실패 | 파이프라인 | Prometheus · `increase(airflow_dagrun_duration_failed_count[10m]) > 0` |
 | 3 | 스케줄러 다운 | 파이프라인 | Prometheus · `increase(airflow_scheduler_heartbeat[5m]) < 1` |
 | 4 | 품질 급락(match_rate) | 전처리 | `/dq/latest?stage=silver_to_gold&metric=match_rate` · `< 0.95` |
-| 5 | 빈 카테고리 | 크롤링 | `/dq/latest?stage=crawl&metric=categories_zero` · `> 0` |
-| 6 | 수집량 급감 | 크롤링 | `/dq/latest?stage=crawl&metric=products_total` · `< 1500` |
 | 7 | 전처리 오류율 | 전처리 | `/dq/latest?stage=bronze_to_silver&metric=error_rate` · `> 0.7` |
+| 8 | 크롤 품질 경고 | 크롤링 | `/dq/latest?stage=bronze_gate&metric=gate_status` · `= 1` |
+| 9 | 전처리 보류 | 전처리 | `/dq/latest?stage=bronze_gate&metric=gate_status` · `= 2`(3=우회 진행은 미발화) |
+| 10 | 크롤 장기 실행 | 크롤링 | Prometheus(REST observer) · 크롤 DAG run `> 60h` |
+| S1~S4 | 디스크 부족·위험 / 메모리 / 노드 끊김 | system | node-exporter |
+| S5 | 관측 수집 실패 | system | Prometheus · observer `collection_success == 0`(15m) 또는 home-server 시리즈 부재 |
 
 > 1a/1b 설계 근거: 전처리 DAG는 crawl 완료 시 트리거되므로 절대 신선도로는 못 잰다
-> (crawl 주기 3~4일 → 절대 age는 늘 큼). 대신 crawl 대비 상대 지연(lag)으로 판정한다.
-> 5~7은 대시보드 지표 기반 데이터 품질 알림. `categories_failed`(만성 2~4)는 알람 대신 완료 리포트에서 노출.
+> (crawl 주기 3~4일 → 절대 age는 늘 큼). 대신 최신 crawl 뒤 전처리가 아직 안 끝난 밀린 시간(lag)으로 판정한다.
+> 4·7·8·9는 **배치 품질 알림**(`kind=batch_quality`): Infinity 응답의 `created_at`·`batch_date`를 라벨로 써서 기록 1건당 1회만 알린다(끝난 배치를 4h마다 재알림하지 않음, 해소 알림 없음).
+> 크롤 품질 판정(누락·연속 누락·부분 수집·수집률)은 Oliveyoung_Pipeline 입력 품질 게이트가 하고 #8·#9는 결과만 읽는다. 옛 #5 빈 카테고리·#6 수집량 급감은 게이트로 대체해 삭제(2026-10-08).
+> dq_api(Infinity) 룰은 `execErrState: KeepLast` — 조회 실패 때 상태를 유지해 같은 기록이 다시 알림되지 않게 한다.
 
 ## 메시지 디자인 (contact-points.yaml title/message 인라인, 스타일 B)
 

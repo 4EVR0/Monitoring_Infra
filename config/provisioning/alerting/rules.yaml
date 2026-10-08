@@ -4,7 +4,8 @@
 #   Prometheus       = cfltz3i4tlfr4e
 #   Infinity(DQ API) = efqsx4w1y7caof
 #   match_rate 평상시 ≈ 0.991 (silver_to_gold, 0~1) → 하한 0.95
-#   crawl 정상치: products_total 2300~3600 / categories_zero 0 / bronze error_rate ~0.41(dedup)
+#   bronze error_rate ~0.41(dedup)
+#   크롤 품질(누락·연속 누락·부분 수집)은 Pipeline 입력 품질 게이트(bronze_gate)가 판정 → #8·#9가 결과만 읽는다
 #
 # pipeline 라벨(크롤링/전처리/파이프라인)로 Discord 메시지 제목을 라우팅한다.
 # ⚠️ Infinity 알림 룰은 반드시 parser: backend. 첫 로딩 후 UI에서 1회 검증 권장.
@@ -270,94 +271,6 @@ groups:
               expression: B
               conditions:
                 - evaluator: { type: lt, params: [0.95] }
-
-      # #5 빈 카테고리 — 크롤됐지만 상품 0개인 카테고리 발생 (에러 없는 조용한 데이터 손실)
-      # [과도기] 입력 품질 게이트(#8·#9) 첫 실행 확인 후 삭제 예정
-      - uid: alert-crawl-categories-zero
-        title: 빈 카테고리
-        condition: C
-        for: 0m
-        noDataState: OK
-        execErrState: KeepLast   # dq_api 조회 실패(재시작·TLS) 때 상태 유지 → 해소·재발화로 같은 기록이 다시 알림되지 않게
-        labels:
-          severity: warning
-          pipeline: 크롤링
-          kind: batch_quality   # 배치 품질 — 기록 1건당 1회 알림(notification-policy)
-        annotations:
-          summary: '크롤됐지만 상품 0개인 카테고리가 있습니다 ({{ printf "%.0f" $values.B.Value }}개).'
-        data:
-          - refId: A
-            relativeTimeRange: { from: 600, to: 0 }
-            datasourceUid: efqsx4w1y7caof
-            model:
-              refId: A
-              datasource: { type: yesoreyeram-infinity-datasource, uid: efqsx4w1y7caof }
-              type: json
-              source: url
-              parser: backend
-              format: table
-              url: http://dq_api:8000/dq/latest?stage=crawl&metric=categories_zero
-              url_options: { method: GET }
-              root_selector: ""
-              columns:
-                - { selector: metric_value, text: metric_value, type: number }
-                - { selector: created_at, text: created_at, type: string }   # 기록 1건 = 알림 인스턴스 1개
-                - { selector: batch_date, text: batch_date, type: string }   # 메시지 배치 표시용
-          - refId: B
-            datasourceUid: __expr__
-            model: { refId: B, type: reduce, reducer: last, expression: A }
-          - refId: C
-            datasourceUid: __expr__
-            model:
-              refId: C
-              type: threshold
-              expression: B
-              conditions:
-                - evaluator: { type: gt, params: [0] }
-
-      # #6 수집량 급감 — crawl 수집 상품이 비정상적으로 적음 (크롤 대량실패, 07-05에 751로 폭락)
-      # [과도기] 입력 품질 게이트(#8·#9) 첫 실행 확인 후 삭제 예정
-      - uid: alert-crawl-products-low
-        title: 수집량 급감
-        condition: C
-        for: 0m
-        noDataState: OK
-        execErrState: KeepLast   # dq_api 조회 실패(재시작·TLS) 때 상태 유지 → 해소·재발화로 같은 기록이 다시 알림되지 않게
-        labels:
-          severity: warning
-          pipeline: 크롤링
-          kind: batch_quality   # 배치 품질 — 기록 1건당 1회 알림(notification-policy)
-        annotations:
-          summary: 'crawl 수집 상품이 비정상적으로 적습니다 ({{ printf "%.0f" $values.B.Value }}건, 임계 1500).'
-        data:
-          - refId: A
-            relativeTimeRange: { from: 600, to: 0 }
-            datasourceUid: efqsx4w1y7caof
-            model:
-              refId: A
-              datasource: { type: yesoreyeram-infinity-datasource, uid: efqsx4w1y7caof }
-              type: json
-              source: url
-              parser: backend
-              format: table
-              url: http://dq_api:8000/dq/latest?stage=crawl&metric=products_total
-              url_options: { method: GET }
-              root_selector: ""
-              columns:
-                - { selector: metric_value, text: metric_value, type: number }
-                - { selector: created_at, text: created_at, type: string }   # 기록 1건 = 알림 인스턴스 1개
-                - { selector: batch_date, text: batch_date, type: string }   # 메시지 배치 표시용
-          - refId: B
-            datasourceUid: __expr__
-            model: { refId: B, type: reduce, reducer: last, expression: A }
-          - refId: C
-            datasourceUid: __expr__
-            model:
-              refId: C
-              type: threshold
-              expression: B
-              conditions:
-                - evaluator: { type: lt, params: [1500] }
 
       # #7 전처리 오류율 상승 — bronze→silver error_rate가 dedup 정상선(~0.41) 크게 초과
       - uid: alert-silver-error-rate
@@ -685,3 +598,11 @@ groups:
               expression: B
               conditions:
                 - evaluator: { type: gt, params: [0] }
+
+# groups에서 룰을 빼도 Grafana는 이미 만든 provisioned 룰을 지우지 않는다 → 명시 삭제.
+# #5 빈 카테고리·#6 수집량 급감: 입력 품질 게이트(#8·#9)로 대체(2026-10-08).
+deleteRules:
+  - orgId: 1
+    uid: alert-crawl-categories-zero
+  - orgId: 1
+    uid: alert-crawl-products-low

@@ -77,14 +77,15 @@ Airflow·DQ 대시보드는 현재 자동 provisioning 대상이 아니므로 JS
 - **문제 알람** — 이 레포가 담당. `config/provisioning/alerting/` YAML 을 Grafana 부팅 시 로딩(`config/provisioning` 마운트). 룰이 발화하면 Discord 로 알린다
 - **완료 리포트** — 파이프라인 쪽 담당. 각 단계가 `dq_metrics` 요약을 Discord 로 보낸다(Airflow `DISCORD_DQ_WEBHOOK_URL`). 만성적이지만 치명적이지 않은 지표(예: `categories_failed`)는 알람 대신 이 리포트로 노출한다
 
-알림 룰 8종은 Prometheus(운영 지표)와 dq_api(데이터 품질)를 소스로 한다.
+알림 룰 14종은 Prometheus(운영 지표)와 dq_api(데이터 품질)를 소스로 한다.
 
 | 소스 | 알림 |
 |------|------|
-| Prometheus | DAG 실패 · 스케줄러 다운 |
-| dq_api (Infinity) | crawl 신선도 · 전처리 지연(lag) · 품질 급락(match_rate) · 빈 카테고리 · 수집량 급감 · 전처리 오류율 |
+| Prometheus | DAG 실패 · 스케줄러 다운 · 크롤 장기 실행(REST observer) · 시스템(디스크·메모리·노드·관측 수집 실패) |
+| dq_api (Infinity) | crawl 신선도 · 전처리 지연 · 품질 급락(match_rate) · 전처리 오류율 · 크롤 품질 경고 · 전처리 보류(입력 품질 게이트) |
 
-- 전처리 DAG 는 crawl 완료 시 트리거되므로 절대 신선도로 못 잰다(crawl 주기 3~4일) → crawl 대비 **상대 지연(lag)** 으로 판정
+- 전처리 지연은 최신 crawl 뒤 전처리가 아직 안 끝난 **밀린 시간**으로 판정(crawl 주기 3~4일이라 절대 신선도로 못 잼)
+- 배치 품질 알림(match_rate·오류율·게이트 경고·보류)은 기록 1건당 1회(`kind=batch_quality` 경로), 상태형 알림은 4h 반복
 - 메시지는 `contact-points.yaml` 의 title/message 에 인라인(별도 templates 참조가 provisioning 에서 빈 값으로 렌더되는 이슈 회피). `pipeline` 라벨로 대시보드 링크를 분기
 - Infinity 알림 룰은 `parser: backend` 필수, dq_api 풀스캔 부하를 감안해 룰 그룹은 10분 간격
 - 룰 상세·배포 절차는 `config/provisioning/alerting/README.md`
