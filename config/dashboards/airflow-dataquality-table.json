@@ -324,10 +324,10 @@
             "transformations": []
           }
         },
-        "description": "최신 크롤에서 기록된 카테고리 이동 실패 수. 일반 예외·0건·재개 시 건너뛴 카테고리는 포함하지 않으므로 0이 전체 수집 성공을 뜻하지는 않는다. ⚠️ 백필은 bronze→silver만 실행하고 crawl·gold는 절대 건드리지 않아, 이 지표는 백필과 무관(N/A)하다.",
+        "description": "최신 크롤에서 완전히 수집하지 못한 카테고리 수(이동 실패·일반 예외·부분 수집·미시도 포함, 대상 19개). 2026-10-04 크롤부터 run 전체(manifest) 기준 — 이전 값은 이동 실패만 센 것이라 정의가 다르다. ⚠️ 백필은 bronze→silver만 실행하고 crawl·gold는 절대 건드리지 않아, 이 지표는 백필과 무관(N/A)하다.",
         "id": 103,
         "links": [],
-        "title": "카테고리 이동 실패",
+        "title": "카테고리 실패",
         "vizConfig": {
           "group": "stat",
           "kind": "VizConfig",
@@ -434,7 +434,7 @@
             "transformations": []
           }
         },
-        "description": "최신 크롤에서 방문 후 상품 0건으로 기록된 카테고리 수. 재개 과정에서 건너뛴 카테고리와는 별개이며, 1 이상이면 원인 확인이 필요하다. ⚠️ 백필은 bronze→silver만 실행하고 crawl·gold는 절대 건드리지 않아, 이 지표는 백필과 무관(N/A)하다.",
+        "description": "최신 크롤에서 URL 목록이 비었거나 완료했지만 상품 0건인 카테고리 수. 2026-10-04 크롤부터 재개 시 건너뛴 카테고리를 0건으로 세지 않는다(9/28 배치의 '빈 카테고리 14'는 이 오집계). ⚠️ 백필은 bronze→silver만 실행하고 crawl·gold는 절대 건드리지 않아, 이 지표는 백필과 무관(N/A)하다.",
         "id": 104,
         "links": [],
         "title": "카테고리 0건",
@@ -2849,7 +2849,7 @@
             "transformations": []
           }
         },
-        "description": "이동 실패 / 0건 카테고리 수. >0이면 카테고리 누락 — 거의 항상 크롤 결함 신호. ⚠️ 백필은 bronze→silver만 실행하고 crawl·gold는 절대 건드리지 않아, 이 지표는 백필과 무관(N/A)하다.",
+        "description": "실패 / 0건 카테고리 수. 2026-10-04 크롤부터 정의 변경(실패=완전 수집 못한 전부, 0건=진짜 0건만) — 그 이전과 계단이 생긴다. ⚠️ 백필은 bronze→silver만 실행하고 crawl·gold는 절대 건드리지 않아, 이 지표는 백필과 무관(N/A)하다.",
         "id": 9,
         "links": [],
         "title": "카테고리 실패 / 0건 (crawl)",
@@ -2947,6 +2947,1096 @@
           "version": "13.0.1"
         }
       }
+    },
+    "panel-201": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "metric_value",
+                          "text": "value",
+                          "type": "number"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/latest?stage=bronze_gate&metric=gate_status&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "선택 기간의 최신 게이트 판정. 통과 / 경고(연속 누락·전멸 수준 누락·수집률 미달·판별 불가) / 보류(부분 수집 입력·비정상 run_id) / 우회 진행(conf gate: skip). ⚠️ 백필은 bronze_gate를 실행하지 않아 이 지표는 백필과 무관(N/A)하다.",
+        "id": 201,
+        "links": [],
+        "title": "입력 품질 게이트 판정",
+        "vizConfig": {
+          "group": "stat",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "links": [
+                  {
+                    "targetBlank": true,
+                    "title": "📜 게이트 로그 보기",
+                    "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"bronze_to_silver\\\"} |= \\\"게이트\\\"\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}"
+                  }
+                ],
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "orange",
+                      "value": 1
+                    },
+                    {
+                      "color": "red",
+                      "value": 2
+                    },
+                    {
+                      "color": "purple",
+                      "value": 3
+                    }
+                  ]
+                },
+                "unit": "short",
+                "mappings": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "통과",
+                        "color": "green",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "경고",
+                        "color": "orange",
+                        "index": 1
+                      },
+                      "2": {
+                        "text": "보류",
+                        "color": "red",
+                        "index": 2
+                      },
+                      "3": {
+                        "text": "우회 진행",
+                        "color": "purple",
+                        "index": 3
+                      }
+                    }
+                  }
+                ]
+              },
+              "overrides": []
+            },
+            "options": {
+              "colorMode": "background",
+              "graphMode": "none",
+              "justifyMode": "center",
+              "orientation": "auto",
+              "percentChangeColorMode": "standard",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ],
+                "fields": "",
+                "values": false
+              },
+              "showPercentChange": false,
+              "textMode": "auto",
+              "wideLayout": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-202": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "metric_value",
+                          "text": "value",
+                          "type": "number"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/latest?stage=bronze_gate&metric=categories_stale&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "최근 완료 크롤에서 3회 이상 연속 통째 누락된 카테고리 수. 이 카테고리는 이전 run 데이터로 채워져 약 9일 넘게 묵은 상태다. ⚠️ 백필은 bronze_gate를 실행하지 않아 이 지표는 백필과 무관(N/A)하다. 카테고리 이름은 아래 '게이트 사유 (카테고리)' 로그 패널에서 본다.",
+        "id": 202,
+        "links": [],
+        "title": "연속 누락 카테고리",
+        "vizConfig": {
+          "group": "stat",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "links": [
+                  {
+                    "targetBlank": true,
+                    "title": "📜 게이트 로그 보기",
+                    "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"bronze_to_silver\\\"} |= \\\"게이트\\\"\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}"
+                  }
+                ],
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "orange",
+                      "value": 1
+                    }
+                  ]
+                },
+                "unit": "short"
+              },
+              "overrides": []
+            },
+            "options": {
+              "colorMode": "background",
+              "graphMode": "none",
+              "justifyMode": "center",
+              "orientation": "auto",
+              "percentChangeColorMode": "standard",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ],
+                "fields": "",
+                "values": false
+              },
+              "showPercentChange": false,
+              "textMode": "auto",
+              "wideLayout": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-203": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "metric_value",
+                          "text": "value",
+                          "type": "number"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/latest?stage=bronze_gate&metric=categories_partial_input&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "전처리 입력 중 중간까지만 수집된 카테고리 수. 1 이상이면 보류 대상(CDC REMOVED → Neo4j 삭제 경로). ⚠️ 백필은 bronze_gate를 실행하지 않아 이 지표는 백필과 무관(N/A)하다. 카테고리 이름은 아래 '게이트 사유 (카테고리)' 로그 패널에서 본다.",
+        "id": 203,
+        "links": [],
+        "title": "부분 수집 입력",
+        "vizConfig": {
+          "group": "stat",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "links": [
+                  {
+                    "targetBlank": true,
+                    "title": "📜 게이트 로그 보기",
+                    "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"bronze_to_silver\\\"} |= \\\"게이트\\\"\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}"
+                  }
+                ],
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                },
+                "unit": "short"
+              },
+              "overrides": []
+            },
+            "options": {
+              "colorMode": "background",
+              "graphMode": "none",
+              "justifyMode": "center",
+              "orientation": "auto",
+              "percentChangeColorMode": "standard",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ],
+                "fields": "",
+                "values": false
+              },
+              "showPercentChange": false,
+              "textMode": "auto",
+              "wideLayout": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-204": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "metric_value",
+                          "text": "value",
+                          "type": "number"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/latest?stage=crawl&metric=products_coverage&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "최신 크롤의 수집 상품 / 기대 상품(카테고리별 URL 수 합). 2026-10-04 크롤부터 기록. 0.9 미만 카테고리는 게이트 경고.",
+        "id": 204,
+        "links": [],
+        "title": "크롤 수집률",
+        "vizConfig": {
+          "group": "stat",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "links": [
+                  {
+                    "targetBlank": true,
+                    "title": "📜 게이트 로그 보기",
+                    "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"bronze_to_silver\\\"} |= \\\"게이트\\\"\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}"
+                  }
+                ],
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "orange",
+                      "value": 0
+                    },
+                    {
+                      "color": "green",
+                      "value": 0.9
+                    }
+                  ]
+                },
+                "unit": "percentunit",
+                "max": 1
+              },
+              "overrides": []
+            },
+            "options": {
+              "colorMode": "background",
+              "graphMode": "none",
+              "justifyMode": "center",
+              "orientation": "auto",
+              "percentChangeColorMode": "standard",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ],
+                "fields": "",
+                "values": false
+              },
+              "showPercentChange": false,
+              "textMode": "auto",
+              "wideLayout": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-205": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "created_at",
+                          "text": "time",
+                          "type": "timestamp"
+                        },
+                        {
+                          "selector": "metric_value",
+                          "text": "판정",
+                          "type": "number"
+                        },
+                        {
+                          "selector": "batch_date",
+                          "text": "batch_date",
+                          "type": "string"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/series?stage=bronze_gate&metric=gate_status&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "배치별 게이트 판정(0 통과·1 경고·2 보류·3 우회 진행). ⚠️ 백필은 bronze_gate를 실행하지 않아 이 지표는 백필과 무관(N/A)하다.",
+        "id": 205,
+        "links": [],
+        "title": "게이트 판정 추이",
+        "vizConfig": {
+          "group": "timeseries",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "custom": {
+                  "axisBorderShow": false,
+                  "axisCenteredZero": false,
+                  "axisColorMode": "text",
+                  "axisLabel": "",
+                  "axisPlacement": "auto",
+                  "barAlignment": 0,
+                  "barWidthFactor": 0.6,
+                  "drawStyle": "line",
+                  "fillOpacity": 0,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "viz": false
+                  },
+                  "insertNulls": false,
+                  "lineInterpolation": "linear",
+                  "lineWidth": 2,
+                  "pointSize": 6,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "showPoints": "always",
+                  "showValues": false,
+                  "spanNulls": true,
+                  "stacking": {
+                    "group": "A",
+                    "mode": "none"
+                  },
+                  "thresholdsStyle": {
+                    "mode": "line"
+                  }
+                },
+                "links": [
+                  {
+                    "targetBlank": true,
+                    "title": "📜 게이트 로그 보기",
+                    "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"bronze_to_silver\\\"} |= \\\"게이트\\\"\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}"
+                  }
+                ],
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "orange",
+                      "value": 1
+                    },
+                    {
+                      "color": "red",
+                      "value": 2
+                    }
+                  ]
+                },
+                "unit": "short"
+              },
+              "overrides": []
+            },
+            "options": {
+              "annotations": {
+                "clustering": -1,
+                "multiLane": false
+              },
+              "legend": {
+                "calcs": [],
+                "displayMode": "list",
+                "placement": "bottom",
+                "showLegend": true
+              },
+              "tooltip": {
+                "hideZeros": false,
+                "mode": "multi",
+                "sort": "none"
+              }
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-206": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "created_at",
+                          "text": "time",
+                          "type": "timestamp"
+                        },
+                        {
+                          "selector": "metric_value",
+                          "text": "누락",
+                          "type": "number"
+                        },
+                        {
+                          "selector": "batch_date",
+                          "text": "batch_date",
+                          "type": "string"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/series?stage=bronze_gate&metric=categories_missing&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              },
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "created_at",
+                          "text": "time",
+                          "type": "timestamp"
+                        },
+                        {
+                          "selector": "metric_value",
+                          "text": "연속 누락",
+                          "type": "number"
+                        },
+                        {
+                          "selector": "batch_date",
+                          "text": "batch_date",
+                          "type": "string"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/series?stage=bronze_gate&metric=categories_stale&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "B"
+                }
+              },
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "created_at",
+                          "text": "time",
+                          "type": "timestamp"
+                        },
+                        {
+                          "selector": "metric_value",
+                          "text": "부분 수집 입력",
+                          "type": "number"
+                        },
+                        {
+                          "selector": "batch_date",
+                          "text": "batch_date",
+                          "type": "string"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/series?stage=bronze_gate&metric=categories_partial_input&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "C"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "배치별 게이트 사유 수치: 최신 크롤 누락, 연속 누락, 부분 수집 입력. 누락만 많고 연속 누락이 없으면 이전 데이터로 채워져 손상은 없다. ⚠️ 백필은 bronze_gate를 실행하지 않아 이 지표는 백필과 무관(N/A)하다.",
+        "id": 206,
+        "links": [],
+        "title": "게이트 사유 추이",
+        "vizConfig": {
+          "group": "timeseries",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "axisBorderShow": false,
+                  "axisCenteredZero": false,
+                  "axisColorMode": "text",
+                  "axisLabel": "",
+                  "axisPlacement": "auto",
+                  "barAlignment": 0,
+                  "barWidthFactor": 0.6,
+                  "drawStyle": "line",
+                  "fillOpacity": 0,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "viz": false
+                  },
+                  "insertNulls": false,
+                  "lineInterpolation": "linear",
+                  "lineWidth": 2,
+                  "pointSize": 6,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "showPoints": "always",
+                  "showValues": false,
+                  "spanNulls": true,
+                  "stacking": {
+                    "group": "A",
+                    "mode": "none"
+                  },
+                  "thresholdsStyle": {
+                    "mode": "off"
+                  }
+                },
+                "links": [
+                  {
+                    "targetBlank": true,
+                    "title": "📜 게이트 로그 보기",
+                    "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"bronze_to_silver\\\"} |= \\\"게이트\\\"\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}"
+                  }
+                ],
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    }
+                  ]
+                },
+                "unit": "short"
+              },
+              "overrides": []
+            },
+            "options": {
+              "annotations": {
+                "clustering": -1,
+                "multiLane": false
+              },
+              "legend": {
+                "calcs": [],
+                "displayMode": "list",
+                "placement": "bottom",
+                "showLegend": true
+              },
+              "tooltip": {
+                "hideZeros": false,
+                "mode": "multi",
+                "sort": "none"
+              }
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-207": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "created_at",
+                          "text": "time",
+                          "type": "timestamp"
+                        },
+                        {
+                          "selector": "metric_value",
+                          "text": "완료",
+                          "type": "number"
+                        },
+                        {
+                          "selector": "batch_date",
+                          "text": "batch_date",
+                          "type": "string"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/series?stage=crawl&metric=categories_completed&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              },
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${dq_datasource}"
+                    },
+                    "group": "yesoreyeram-infinity-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "columns": [
+                        {
+                          "selector": "created_at",
+                          "text": "time",
+                          "type": "timestamp"
+                        },
+                        {
+                          "selector": "metric_value",
+                          "text": "실패",
+                          "type": "number"
+                        },
+                        {
+                          "selector": "batch_date",
+                          "text": "batch_date",
+                          "type": "string"
+                        }
+                      ],
+                      "format": "table",
+                      "parser": "backend",
+                      "root_selector": "",
+                      "source": "url",
+                      "type": "json",
+                      "url": "${dq_api_url}/dq/series?stage=crawl&metric=categories_failed&from=${__from}&to=${__to}",
+                      "url_options": {
+                        "method": "GET"
+                      }
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "B"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "크롤별 완료·실패 카테고리 수(대상 19개). 2026-10-04 크롤부터 run 전체(manifest) 기준이라 이전 값과 정의가 다르다.",
+        "id": 207,
+        "links": [],
+        "title": "크롤 카테고리 완료 / 실패",
+        "vizConfig": {
+          "group": "timeseries",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "axisBorderShow": false,
+                  "axisCenteredZero": false,
+                  "axisColorMode": "text",
+                  "axisLabel": "",
+                  "axisPlacement": "auto",
+                  "barAlignment": 0,
+                  "barWidthFactor": 0.6,
+                  "drawStyle": "line",
+                  "fillOpacity": 0,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "viz": false
+                  },
+                  "insertNulls": false,
+                  "lineInterpolation": "linear",
+                  "lineWidth": 2,
+                  "pointSize": 6,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "showPoints": "always",
+                  "showValues": false,
+                  "spanNulls": true,
+                  "stacking": {
+                    "group": "A",
+                    "mode": "none"
+                  },
+                  "thresholdsStyle": {
+                    "mode": "off"
+                  }
+                },
+                "links": [
+                  {
+                    "targetBlank": true,
+                    "title": "📜 게이트 로그 보기",
+                    "url": "/explore?orgId=1&left={\"datasource\":\"${loki_datasource}\",\"queries\":[{\"expr\":\"{job=\\\"airflow\\\",task_id=\\\"bronze_to_silver\\\"} |= \\\"게이트\\\"\",\"refId\":\"A\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}"
+                  }
+                ],
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    }
+                  ]
+                },
+                "unit": "short"
+              },
+              "overrides": []
+            },
+            "options": {
+              "annotations": {
+                "clustering": -1,
+                "multiLane": false
+              },
+              "legend": {
+                "calcs": [],
+                "displayMode": "list",
+                "placement": "bottom",
+                "showLegend": true
+              },
+              "tooltip": {
+                "hideZeros": false,
+                "mode": "multi",
+                "sort": "none"
+              }
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-208": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "name": "${loki_datasource}"
+                    },
+                    "group": "loki",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "expr": "{job=\"airflow\", task_id=\"bronze_to_silver\"} |= \"[게이트]\""
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "입력 품질 게이트가 남긴 사유 줄: 어떤 카테고리가 부분 수집·연속 누락·누락·수집률 미달·판별 불가인지. 통과(사유 없음)면 비어 있다. 같은 내용이 Discord \"입력 품질 게이트\" 리포트에도 온다. DQ 테이블은 숫자만 저장하므로 카테고리 이름은 이 로그(Loki)에서 본다.",
+        "id": 208,
+        "links": [],
+        "title": "게이트 사유 (카테고리)",
+        "vizConfig": {
+          "group": "logs",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {},
+              "overrides": []
+            },
+            "options": {
+              "dedupStrategy": "none",
+              "enableInfiniteScrolling": false,
+              "enableLogDetails": true,
+              "prettifyLogMessage": false,
+              "showControls": false,
+              "showFieldSelector": false,
+              "showLabels": false,
+              "showLevel": false,
+              "showTime": true,
+              "sortOrder": "Descending",
+              "timestampResolution": "ms",
+              "unwrappedColumns": false,
+              "wrapLogMessage": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
     }
   },
   "layout": {
@@ -3017,6 +4107,124 @@
               }
             },
             "title": "선택 기간의 최신 DQ 기록 (단계별 실행)"
+          }
+        },
+        {
+          "kind": "RowsLayoutRow",
+          "spec": {
+            "collapse": false,
+            "title": "입력 품질 게이트 (bronze_gate)",
+            "layout": {
+              "kind": "GridLayout",
+              "spec": {
+                "items": [
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-201"
+                      },
+                      "height": 4,
+                      "width": 6,
+                      "x": 0,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-202"
+                      },
+                      "height": 4,
+                      "width": 6,
+                      "x": 6,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-203"
+                      },
+                      "height": 4,
+                      "width": 6,
+                      "x": 12,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-204"
+                      },
+                      "height": 4,
+                      "width": 6,
+                      "x": 18,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-205"
+                      },
+                      "height": 8,
+                      "width": 8,
+                      "x": 0,
+                      "y": 4
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-206"
+                      },
+                      "height": 8,
+                      "width": 8,
+                      "x": 8,
+                      "y": 4
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-207"
+                      },
+                      "height": 8,
+                      "width": 8,
+                      "x": 16,
+                      "y": 4
+                    }
+                  },
+                  {
+                    "kind": "GridLayoutItem",
+                    "spec": {
+                      "element": {
+                        "kind": "ElementReference",
+                        "name": "panel-208"
+                      },
+                      "height": 7,
+                      "width": 24,
+                      "x": 0,
+                      "y": 12
+                    }
+                  }
+                ]
+              }
+            }
           }
         },
         {
