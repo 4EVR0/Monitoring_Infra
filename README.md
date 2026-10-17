@@ -102,7 +102,21 @@ docker compose logs -f grafana
 ```
 
 - `.env`(gitignore)에 `GF_SECURITY_ADMIN_PASSWORD`(Grafana 관리자)와 `DISCORD_ALERT_WEBHOOK_URL`(알림 연결처)을 주입한다.
-- 알림 룰·연결처 YAML 을 바꾼 뒤에는 `docker compose up -d`(Grafana 재기동)로 provisioning 을 다시 읽힌다.
+- 알림 룰·연결처 YAML 은 Grafana **재시작** 때만 다시 읽힌다(`docker compose up -d`는 마운트 파일 변경을 감지하지 못해 재시작하지 않음) → `docker compose restart grafana`.
+
+### 배포 (GitHub Actions → SSM)
+
+`.github/workflows/deploy.yml`이 OIDC로 AWS 역할을 받아 SSM으로 서버에서 다음을 실행한다(SSH·장기 키 없음).
+
+1. 레포 소유자 권한으로 현재 SHA 기록 → `git pull --ff-only`
+2. `scripts/deploy.sh <이전 SHA>` — `docker compose up -d --build` 후, 바뀐 파일에 따라 `config/provisioning/**` → grafana, `prometheus.yml` → prometheus, `loki-config.yml` → loki만 재시작 → Grafana·Prometheus·dq_api 헬스체크
+3. SSM 결과(stdout·stderr·상태)를 Actions 로그에 남기고, 성공이 아니면 workflow 실패
+
+- 현재는 **수동 실행(`workflow_dispatch`)만** 켜 두었다. 검증 후 main push 트리거를 연다.
+- `.env`(비밀)는 서버에만 있고 workflow·스크립트는 읽거나 출력하지 않는다.
+- 서버에 커밋 안 된 수정이 있으면 `--ff-only` pull이 실패해 배포가 멈춘다(덮어쓰지 않음).
+- 롤백: 문제 PR을 GitHub에서 revert해 머지 후 다시 실행. GitHub 경로가 막히면 서버에서 이전 SHA로 `git checkout` 후 `bash scripts/deploy.sh <현재 SHA>`.
+- 대시보드 JSON(`config/dashboards/`)은 provisioning 대상이 아니라 배포로 반영되지 않는다(UI에서 임포트).
 - Loki 는 자체 웹 UI 가 없다 → 조회는 Grafana Explore 또는 `:3100/loki/api/v1/...`.
 - 스크레이프 타깃·세부 호스트/인증 설정은 `prometheus.yml`, `loki-config.yml`, `docs/` 참고.
 
