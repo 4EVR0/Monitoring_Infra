@@ -108,7 +108,7 @@ docker compose logs -f grafana
 
 `.github/workflows/deploy.yml`이 OIDC로 AWS 역할을 받아 SSM으로 서버에서 다음을 실행한다(SSH·장기 키 없음).
 
-1. 레포 소유자 권한으로 현재 SHA 기록 → `git pull --ff-only`
+1. `.git` 소유자 권한으로 현재 SHA 기록 → `git pull --ff-only` (폴더는 root, `.git`·파일은 사용자 소유라 `.git` 기준)
 2. `scripts/deploy.sh <이전 SHA>` — `docker compose up -d --build` 후, 바뀐 파일에 따라 `config/provisioning/**` → grafana, `prometheus.yml` → prometheus, `loki-config.yml` → loki만 재시작 → Grafana·Prometheus·dq_api 헬스체크
 3. SSM 결과(stdout·stderr·상태)를 Actions 로그에 남기고, 성공이 아니면 workflow 실패
 
