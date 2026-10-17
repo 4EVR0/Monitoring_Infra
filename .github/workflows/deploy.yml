@@ -30,12 +30,13 @@ jobs:
       - name: Send deploy command via SSM
         id: send
         run: |
-          # pull 이전 SHA를 남기고(레포 소유자 권한으로) pull → 새 버전 deploy.sh가 바뀐 파일만 반영
+          # pull 이전 SHA를 남기고(.git 소유자 권한으로) pull → 새 버전 deploy.sh가 바뀐 파일만 반영.
+          # 폴더(/home/monitoring)는 root, .git·파일은 사용자 소유라 .git 기준으로 실행한다(dubious ownership 방지).
           cat > params.json <<EOF
           {"commands": [
             "set -e",
             "cd ${REPO_DIR}",
-            "OWNER=\$(stat -c %U .)",
+            "OWNER=\$(stat -c %U .git)",
             "BEFORE=\$(runuser -u \"\$OWNER\" -- git rev-parse HEAD)",
             "runuser -u \"\$OWNER\" -- git pull --ff-only",
             "bash scripts/deploy.sh \"\$BEFORE\""
