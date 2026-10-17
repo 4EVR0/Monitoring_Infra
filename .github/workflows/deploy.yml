@@ -1,7 +1,18 @@
 name: Deploy to monitoring server
 
-# 처음엔 수동 실행으로만 검증한 뒤 main push 트리거를 연다(docs: predeploy_improvement_plan §2 P11).
+# main에 반영된 운영 설정이 바뀌면 자동 배포. 수동 재실행도 가능.
+# 대시보드 JSON(config/dashboards/)·문서는 서버 반영 대상이 아니라 제외.
 on:
+  push:
+    branches: [main]
+    paths:
+      - "config/provisioning/**"
+      - "dq_api/**"
+      - "docker-compose.yml"
+      - "prometheus.yml"
+      - "loki-config.yml"
+      - "scripts/deploy.sh"
+      - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
 permissions:
