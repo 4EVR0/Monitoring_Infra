@@ -521,20 +521,22 @@ groups:
               conditions:
                 - evaluator: { type: gt, params: [90] }
 
-      # S4 노드 메트릭 끊김 — 15분 전엔 있던 호스트가 지금 없음 (호스트별, 방법 C)
+      # S4 노드 메트릭 끊김 — 호스트별 up 시리즈가 5분째 없음(호스트 다운·Alloy 중단).
       # up{job="airflow-node"}는 Alloy 스크레이프가 생성 → host 라벨과 함께 remote_write됨.
+      # 이전 식(offset 15m unless)은 15분 넘게 계속 꺼져 있으면 비교 기준도 사라져 저절로 해소됐다.
+      # 호스트를 고정해 부재를 직접 판정 → 꺼져 있는 동안 계속 발화. EC2를 일부러 끌 땐 silence(operations §13).
       - uid: alert-node-absent
         title: 노드 메트릭 끊김
         condition: C
         for: 0m
-        noDataState: OK        # 사라진 호스트 없음 = unless 결과 없음 = 정상
+        noDataState: OK        # 두 호스트 모두 있음 = absent 결과 없음 = 정상
         execErrState: OK
         labels:
           severity: warning
           board: system
           component: 노드
         annotations:
-          summary: '{{ $labels.host }} 노드 메트릭이 끊겼습니다 — 15분 전 대비 미수신(호스트 다운 의심).'
+          summary: '{{ $labels.host }} 노드 메트릭이 5분 넘게 들어오지 않습니다(호스트 다운·Alloy 중단 의심).'
         data:
           - refId: A
             relativeTimeRange: { from: 600, to: 0 }
@@ -542,7 +544,7 @@ groups:
             model:
               refId: A
               editorMode: code
-              expr: 'count by(host) (up{job="airflow-node"} offset 15m) unless count by(host) (up{job="airflow-node"})'
+              expr: 'absent_over_time(up{job="airflow-node",host="airflow-ec2"}[5m]) or absent_over_time(up{job="airflow-node",host="home-server"}[5m])'
               instant: true
               range: false
               intervalMs: 1000
