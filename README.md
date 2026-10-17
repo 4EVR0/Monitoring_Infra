@@ -112,7 +112,7 @@ docker compose logs -f grafana
 2. `scripts/deploy.sh <이전 SHA>` — `docker compose up -d --build` 후, 바뀐 파일에 따라 `config/provisioning/**` → grafana, `prometheus.yml` → prometheus, `loki-config.yml` → loki만 재시작 → Grafana·Prometheus·dq_api 헬스체크
 3. SSM 결과(stdout·stderr·상태)를 Actions 로그에 남기고, 성공이 아니면 workflow 실패
 
-- 현재는 **수동 실행(`workflow_dispatch`)만** 켜 두었다. 검증 후 main push 트리거를 연다.
+- main에 **운영 설정 경로**(`config/provisioning/**`, `dq_api/**`, `docker-compose.yml`, `prometheus.yml`, `loki-config.yml`, `scripts/deploy.sh`, 이 workflow)가 바뀌면 자동 실행된다. Actions에서 수동 재실행도 가능. 대시보드 JSON·문서만 바뀐 머지는 배포하지 않는다.
 - `.env`(비밀)는 서버에만 있고 workflow·스크립트는 읽거나 출력하지 않는다.
 - 서버에 커밋 안 된 수정이 있으면 `--ff-only` pull이 실패해 배포가 멈춘다(덮어쓰지 않음).
 - 롤백: 문제 PR을 GitHub에서 revert해 머지 후 다시 실행. GitHub 경로가 막히면 서버에서 이전 SHA로 `git checkout` 후 `bash scripts/deploy.sh <현재 SHA>`.
