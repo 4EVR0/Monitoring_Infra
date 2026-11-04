@@ -402,7 +402,7 @@ groups:
                 - evaluator: { type: within_range, params: [1.5, 2.5] }   # gate_status=2 (3=우회 진행은 미발화)
 
   # ── node-exporter 소스: 시스템 리소스 알림 (1분 간격, 해소 O) ─────────────
-  # airflow 호스트(EC2/홈서버)의 디스크·메모리·노드 생존. Alloy가 remote_write하는
+  # airflow 호스트(EC2/홈서버)·베타 앱 EC2의 디스크·메모리·노드 생존. Alloy가 remote_write하는
   # node_* / up 메트릭 사용(host 라벨로 서버 구분 → 알림에 어느 서버인지 표시).
   # board=system 라벨로 discord-system 연결처(해소 O)로 라우팅된다.
   - orgId: 1
@@ -430,7 +430,7 @@ groups:
             model:
               refId: A
               editorMode: code
-              expr: '100 - (node_filesystem_avail_bytes{job="airflow-node",mountpoint="/"} / node_filesystem_size_bytes{job="airflow-node",mountpoint="/"} * 100)'
+              expr: '100 - (node_filesystem_avail_bytes{job=~"airflow-node|beta-node",mountpoint="/"} / node_filesystem_size_bytes{job=~"airflow-node|beta-node",mountpoint="/"} * 100)'
               instant: true
               range: false
               intervalMs: 1000
@@ -467,7 +467,7 @@ groups:
             model:
               refId: A
               editorMode: code
-              expr: '100 - (node_filesystem_avail_bytes{job="airflow-node",mountpoint="/"} / node_filesystem_size_bytes{job="airflow-node",mountpoint="/"} * 100)'
+              expr: '100 - (node_filesystem_avail_bytes{job=~"airflow-node|beta-node",mountpoint="/"} / node_filesystem_size_bytes{job=~"airflow-node|beta-node",mountpoint="/"} * 100)'
               instant: true
               range: false
               intervalMs: 1000
@@ -504,7 +504,7 @@ groups:
             model:
               refId: A
               editorMode: code
-              expr: '(1 - node_memory_MemAvailable_bytes{job="airflow-node"} / node_memory_MemTotal_bytes{job="airflow-node"}) * 100'
+              expr: '(1 - node_memory_MemAvailable_bytes{job=~"airflow-node|beta-node"} / node_memory_MemTotal_bytes{job=~"airflow-node|beta-node"}) * 100'
               instant: true
               range: false
               intervalMs: 1000
@@ -522,14 +522,14 @@ groups:
                 - evaluator: { type: gt, params: [90] }
 
       # S4 노드 메트릭 끊김 — 호스트별 up 시리즈가 5분째 없음(호스트 다운·Alloy 중단).
-      # up{job="airflow-node"}는 Alloy 스크레이프가 생성 → host 라벨과 함께 remote_write됨.
+      # up{job="airflow-node"|"beta-node"}는 Alloy 스크레이프가 생성 → host 라벨과 함께 remote_write됨.
       # 이전 식(offset 15m unless)은 15분 넘게 계속 꺼져 있으면 비교 기준도 사라져 저절로 해소됐다.
       # 호스트를 고정해 부재를 직접 판정 → 꺼져 있는 동안 계속 발화. EC2를 일부러 끌 땐 silence(operations §13).
       - uid: alert-node-absent
         title: 노드 메트릭 끊김
         condition: C
         for: 0m
-        noDataState: OK        # 두 호스트 모두 있음 = absent 결과 없음 = 정상
+        noDataState: OK        # 모든 호스트 있음 = absent 결과 없음 = 정상
         execErrState: OK
         labels:
           severity: warning
@@ -544,7 +544,7 @@ groups:
             model:
               refId: A
               editorMode: code
-              expr: 'absent_over_time(up{job="airflow-node",host="airflow-ec2"}[5m]) or absent_over_time(up{job="airflow-node",host="home-server"}[5m])'
+              expr: 'absent_over_time(up{job="airflow-node",host="airflow-ec2"}[5m]) or absent_over_time(up{job="airflow-node",host="home-server"}[5m]) or absent_over_time(up{job="beta-node",host="beta-app"}[5m])'
               instant: true
               range: false
               intervalMs: 1000
