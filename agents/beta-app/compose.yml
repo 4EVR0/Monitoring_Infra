@@ -1,0 +1,48 @@
+# 베타 앱 EC2 관측 에이전트 — 앱 릴리스(/srv/4evr0/releases/<sha>)와 분리된 compose 프로젝트.
+# 호스트 포트 없음. 앱 proxy 네트워크(external)에 고정 IP로 붙어 app:8000 수집.
+name: 4evr0-observe
+services:
+  node-exporter:
+    image: prom/node-exporter:v1.8.2@sha256:4032c6d5bfd752342c3e631c2f1de93ba6b86c41db6b167b9a35372c139e7706
+    restart: unless-stopped
+    command: ["--path.rootfs=/host"]
+    pid: host
+    volumes: ["/:/host:ro,rslave"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    networks: [agent]
+    logging: &logging
+      driver: json-file
+      options: {max-size: 10m, max-file: "3"}
+  alloy:
+    image: grafana/alloy:v1.8.3@sha256:ab04df3936e4d71d31b6f55e0c58a7e749091f59635dd8c2bc731ba1b6c93701
+    restart: unless-stopped
+    env_file: [observe.env]
+    environment:
+      APP_COMPOSE_PROJECT: ${APP_COMPOSE_PROJECT:-4evr0-beta}
+    # 이미지 기본 경로(/var/lib/alloy, alloy:0770)는 cap_drop 상태의 root가 못 들어가서 별도 경로 사용
+    command: [run, /etc/alloy/config.alloy, --storage.path=/alloy-data]
+    volumes:
+      - ./config.alloy:/etc/alloy/config.alloy:ro
+      # 로그 수집용(컨테이너 목록·stdout 조회). ro여도 소켓 API는 제한되지 않음
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # WAL·로그 읽은 위치 보존(재시작 시 중복·유실 방지)
+      - alloy_data:/alloy-data
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    networks:
+      agent: {}
+      # 앱 proxy 대역은 고정 IP(.2 caddy, .3 app) → 에이전트도 고정(.4)으로 충돌 방지
+      app_proxy:
+        ipv4_address: ${ALLOY_PROXY_IP:-172.30.90.4}
+    logging: *logging
+networks:
+  agent: {}
+  app_proxy:
+    external: true
+    name: ${APP_COMPOSE_PROJECT:-4evr0-beta}_proxy
+volumes:
+  alloy_data:
