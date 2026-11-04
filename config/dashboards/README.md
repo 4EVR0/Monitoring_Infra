@@ -79,8 +79,8 @@ FastAPI 앱(`4EVR0-Server`)이 `/metrics`로 노출하는 비즈니스 메트릭
 | 추천 요청 처리율 (ok/error) | `recommend_requests_total{status}` | error 비율로 앱 레벨 실패 추적 |
 | 성분 0개 응답 비율 | `recommend_ingredients_found` | 0개 비율 상승 = Neo4j 데이터/쿼리 회귀 신호 |
 
-> 스크레이프 타깃: `was-app` (`macbook-pro-3.tailb70036.ts.net:8000`) — `prometheus.yml` 참고.
-> ⚠️ 앱이 개발자 Mac 로컬이라 **상시 가동 아님**. 앱이 꺼져 있으면 타깃 down + 패널 No data(정상).
+> 수집: 베타 EC2의 Alloy가 앱 `/metrics`를 remote_write로 push(job `beta-app`, host `beta-app`).
+> 패널 쿼리에 job 필터가 없어 별도 수정 없이 표시된다.
 
 ## 새 환경에 임포트하는 법 (UI)
 

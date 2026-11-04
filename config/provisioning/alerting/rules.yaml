@@ -402,7 +402,7 @@ groups:
                 - evaluator: { type: within_range, params: [1.5, 2.5] }   # gate_status=2 (3=우회 진행은 미발화)
 
   # ── node-exporter 소스: 시스템 리소스 알림 (1분 간격, 해소 O) ─────────────
-  # airflow 호스트(EC2/홈서버)의 디스크·메모리·노드 생존. Alloy가 remote_write하는
+  # airflow 호스트(EC2/홈서버)·베타 앱 EC2의 디스크·메모리·노드 생존. Alloy가 remote_write하는
   # node_* / up 메트릭 사용(host 라벨로 서버 구분 → 알림에 어느 서버인지 표시).
   # board=system 라벨로 discord-system 연결처(해소 O)로 라우팅된다.
   - orgId: 1
@@ -430,7 +430,7 @@ groups:
             model:
               refId: A
               editorMode: code
-              expr: '100 - (node_filesystem_avail_bytes{job="airflow-node",mountpoint="/"} / node_filesystem_size_bytes{job="airflow-node",mountpoint="/"} * 100)'
+              expr: '100 - (node_filesystem_avail_bytes{job=~"airflow-node|beta-node",mountpoint="/"} / node_filesystem_size_bytes{job=~"airflow-node|beta-node",mountpoint="/"} * 100)'
               instant: true
               range: false
               intervalMs: 1000
@@ -467,7 +467,7 @@ groups:
             model:
               refId: A
               editorMode: code
-              expr: '100 - (node_filesystem_avail_bytes{job="airflow-node",mountpoint="/"} / node_filesystem_size_bytes{job="airflow-node",mountpoint="/"} * 100)'
+              expr: '100 - (node_filesystem_avail_bytes{job=~"airflow-node|beta-node",mountpoint="/"} / node_filesystem_size_bytes{job=~"airflow-node|beta-node",mountpoint="/"} * 100)'
               instant: true
               range: false
               intervalMs: 1000
@@ -504,7 +504,7 @@ groups:
             model:
               refId: A
               editorMode: code
-              expr: '(1 - node_memory_MemAvailable_bytes{job="airflow-node"} / node_memory_MemTotal_bytes{job="airflow-node"}) * 100'
+              expr: '(1 - node_memory_MemAvailable_bytes{job=~"airflow-node|beta-node"} / node_memory_MemTotal_bytes{job=~"airflow-node|beta-node"}) * 100'
               instant: true
               range: false
               intervalMs: 1000
@@ -522,14 +522,14 @@ groups:
                 - evaluator: { type: gt, params: [90] }
 
       # S4 노드 메트릭 끊김 — 호스트별 up 시리즈가 5분째 없음(호스트 다운·Alloy 중단).
-      # up{job="airflow-node"}는 Alloy 스크레이프가 생성 → host 라벨과 함께 remote_write됨.
+      # up{job="airflow-node"|"beta-node"}는 Alloy 스크레이프가 생성 → host 라벨과 함께 remote_write됨.
       # 이전 식(offset 15m unless)은 15분 넘게 계속 꺼져 있으면 비교 기준도 사라져 저절로 해소됐다.
       # 호스트를 고정해 부재를 직접 판정 → 꺼져 있는 동안 계속 발화. EC2를 일부러 끌 땐 silence(operations §13).
       - uid: alert-node-absent
         title: 노드 메트릭 끊김
         condition: C
         for: 0m
-        noDataState: OK        # 두 호스트 모두 있음 = absent 결과 없음 = 정상
+        noDataState: OK        # 모든 호스트 있음 = absent 결과 없음 = 정상
         execErrState: OK
         labels:
           severity: warning
@@ -544,7 +544,7 @@ groups:
             model:
               refId: A
               editorMode: code
-              expr: 'absent_over_time(up{job="airflow-node",host="airflow-ec2"}[5m]) or absent_over_time(up{job="airflow-node",host="home-server"}[5m])'
+              expr: 'absent_over_time(up{job="airflow-node",host="airflow-ec2"}[5m]) or absent_over_time(up{job="airflow-node",host="home-server"}[5m]) or absent_over_time(up{job="beta-node",host="beta-app"}[5m])'
               instant: true
               range: false
               intervalMs: 1000
@@ -585,6 +585,125 @@ groups:
               refId: A
               editorMode: code
               expr: '((max by (host) (max_over_time(airflow_observer_collection_success[15m])) == 0) + 1) or absent_over_time(airflow_observer_collection_success{host="home-server"}[15m])'
+              instant: true
+              range: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, reducer: last, expression: A }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+
+  # ── 베타 웹앱(4evr0-beta-app): 저트래픽 전제 ─────────────────────────────
+  # 비율·p95는 요청이 적어 무의미 → 합성 확인(R1)을 기본 가용성 신호로, 실제 요청은 "1건 이상"(W2).
+  # 저장소·GPU 지속 장애는 /ready가 함께 검사하므로 R1로 잡는다. 지연·추천 실패는 기준선 확보 후 추가.
+  - orgId: 1
+    name: web-beta
+    folder: 4evr0-alerts
+    interval: 1m
+    rules:
+      # R1 /ready 실패 — Alloy blackbox가 60초마다 호출(DB·Redis·Neo4j·GPU 연결). Alloy가 죽으면 데이터 없음=OK(S4가 잡음)
+      - uid: alert-web-ready-fail
+        title: 웹 서비스 준비 실패
+        condition: C
+        for: 3m
+        noDataState: OK
+        execErrState: OK
+        labels:
+          severity: critical
+          board: system
+          component: 웹(/ready)
+        annotations:
+          summary: '{{ $labels.host }} /ready가 3분 넘게 실패합니다(DB·Redis·Neo4j·GPU 중 연결 장애). 앱 로그에서 원인 확인.'
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: cfltz3i4tlfr4e
+            model:
+              refId: A
+              editorMode: code
+              expr: 'min by (host) (probe_success{job="beta-probe"})'
+              instant: true
+              range: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, reducer: last, expression: A }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: lt, params: [1] }
+
+      # W1 앱 다운 — 노드는 살아 있는데 앱 /metrics 스크레이프 실패(컨테이너 중단·크래시 루프)
+      - uid: alert-web-app-down
+        title: 웹 앱 다운
+        condition: C
+        for: 2m
+        noDataState: OK
+        execErrState: OK
+        labels:
+          severity: critical
+          board: system
+          component: 웹(앱)
+        annotations:
+          summary: '{{ $labels.host }} 앱이 2분 넘게 응답하지 않습니다(컨테이너 중단·재시작 반복 의심).'
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: cfltz3i4tlfr4e
+            model:
+              refId: A
+              editorMode: code
+              expr: 'min by (host) (up{job="beta-app"})'
+              instant: true
+              range: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, reducer: last, expression: A }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: lt, params: [1] }
+
+      # W2 5xx 발생 — 10분 안에 1건 이상(내부 경로 제외). 라벨 카운터는 첫 5xx 때 생겨 increase()가 놓치므로
+      # "10분 전엔 없던 시리즈"도 함께 본다. 사건형이라 board 없음(해소 메시지 없음), 10분 뒤 자연 해소.
+      - uid: alert-web-5xx
+        title: 웹 5xx 발생
+        condition: C
+        for: 0m
+        noDataState: OK
+        execErrState: OK
+        labels:
+          severity: warning
+          component: 웹(HTTP)
+        annotations:
+          summary: '{{ $labels.host }} 최근 10분 사이 5xx 응답이 발생했습니다. Loki {job="beta-app",service="app"}에서 확인.'
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: cfltz3i4tlfr4e
+            model:
+              refId: A
+              editorMode: code
+              expr: '(sum by (host) (increase(http_requests_total{job="beta-app",status="5xx",handler!~"/metrics|/live|/ready|/health"}[10m])) > 0) or (count by (host) (http_requests_total{job="beta-app",status="5xx",handler!~"/metrics|/live|/ready|/health"} unless http_requests_total{job="beta-app",status="5xx",handler!~"/metrics|/live|/ready|/health"} offset 10m) > 0)'
               instant: true
               range: false
               intervalMs: 1000
