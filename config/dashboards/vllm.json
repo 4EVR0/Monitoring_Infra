@@ -932,7 +932,7 @@
     },
     {
       "type": "timeseries",
-      "title": "단계별 평균 처리시간 (스택 · extract/neo4j/llm_response)",
+      "title": "단계별 평균 처리시간 (스택 · 최근 1시간 평균, total 제외)",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -983,9 +983,9 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (stage) (rate(recommend_stage_latency_seconds_sum[$__rate_interval])) / sum by (stage) (rate(recommend_stage_latency_seconds_count[$__rate_interval]))",
+          "expr": "sum by (span) (increase(recommend_latency_span_seconds_sum{span!=\"total\"}[1h])) / sum by (span) (increase(recommend_latency_span_seconds_count{span!=\"total\"}[1h]))",
           "refId": "A",
-          "legendFormat": "{{stage}}"
+          "legendFormat": "{{span}}"
         }
       ]
     },
@@ -1040,7 +1040,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(profile_extraction_method_total{method=\"rule_based\"}[$__rate_interval])) / sum(rate(profile_extraction_method_total[$__rate_interval]))",
+          "expr": "(sum(increase(profile_extraction_method_total{method=\"rule_based\"}[1h])) or vector(0)) / sum(increase(profile_extraction_method_total[1h]))",
           "refId": "A",
           "legendFormat": "폴백률"
         }
@@ -1048,7 +1048,7 @@
     },
     {
       "type": "timeseries",
-      "title": "추천 요청 처리율 (ok/error)",
+      "title": "추천 요청 수 (ok/error/rejected · 최근 1시간)",
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -1068,7 +1068,7 @@
             "fillOpacity": 5,
             "showPoints": "never"
           },
-          "unit": "reqps",
+          "unit": "short",
           "color": {
             "mode": "palette-classic"
           }
@@ -1095,7 +1095,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (status) (rate(recommend_requests_total[$__rate_interval]))",
+          "expr": "sum by (status) (increase(recommend_requests_total[1h]))",
           "refId": "A",
           "legendFormat": "{{status}}"
         }
@@ -1152,7 +1152,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(recommend_ingredients_found_bucket{le=\"0.0\"}[$__rate_interval])) / sum(rate(recommend_ingredients_found_count[$__rate_interval]))",
+          "expr": "sum(increase(recommend_ingredients_found_bucket{le=\"0.0\"}[1h])) / sum(increase(recommend_ingredients_found_count[1h]))",
           "refId": "A",
           "legendFormat": "0개 비율"
         }
