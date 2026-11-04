@@ -1,0 +1,11 @@
+# 외부 HTTPS 확인 모듈 — Prometheus가 /probe로 호출
+modules:
+  # 베타 웹: 공개 도메인 루트가 200(앱 화면) 또는 401(초대 인증 사용 시)이면 DNS·443·Caddy·인증서·앱 경로 정상
+  https_ok:
+    prober: http
+    timeout: 10s
+    http:
+      method: GET
+      valid_status_codes: [200, 401]
+      fail_if_not_ssl: true
+      preferred_ip_protocol: ip4

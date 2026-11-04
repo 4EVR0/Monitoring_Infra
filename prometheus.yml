@@ -7,6 +7,21 @@ scrape_configs:
     static_configs:
       - targets: ['vast-gpu-server-2.tailb70036.ts.net:18000']
     metrics_path: '/metrics'
+  # 외부 HTTPS 확인(blackbox). 대상 도메인은 targets/web-probe.yml(서버에만, gitignore)
+  - job_name: 'web-external'
+    scrape_interval: 60s
+    metrics_path: /probe
+    params:
+      module: [https_ok]
+    file_sd_configs:
+      - files: ['/etc/prometheus/targets/web-probe.yml']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox:9115
   # 홈서버 메트릭은 Alloy remote_write(push)로 수신 (다른 tailnet이라 pull 불가).
   # airflow 메트릭(EC2/홈서버)도 모두 Alloy push → 별도 scrape 타깃 없음.
   # 추천 앱은 베타 EC2의 Alloy가 push(job beta-app/beta-node, host=beta-app, 4EVR0-Server compose.beta.yml).

@@ -1,0 +1,4 @@
+# 서버에서 web-probe.yml로 복사해 실제 도메인 입력(레포에 커밋하지 않음). 저장 즉시 반영(재시작 불필요)
+- targets: ['https://example.com/']
+  labels:
+    host: beta-app

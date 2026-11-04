@@ -757,6 +757,81 @@ groups:
               expression: B
               conditions:
                 - evaluator: { type: gt, params: [0] }
+
+      # E1 외부 접속 실패 — 모니터링 서버 blackbox가 1분마다 공개 도메인 호출(200·401=정상). 내부 확인(R1·W1)이 못 보는
+      # DNS·보안그룹 443·Caddy·인증서 경로. 대상 파일(targets/web-probe.yml)이 없으면 absent로 실패 처리(조용한 끊김 방지).
+      - uid: alert-web-external-fail
+        title: 웹 외부 접속 실패
+        condition: C
+        for: 3m
+        noDataState: OK
+        execErrState: OK
+        labels:
+          severity: critical
+          board: system
+          component: 웹(외부 HTTPS)
+        annotations:
+          summary: '베타 웹이 외부에서 3분 넘게 열리지 않습니다(DNS·443 보안그룹·Caddy·인증서 중 장애, 또는 확인 대상 파일 없음). 내부 알림이 조용해도 사용자는 접속 불가.'
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: cfltz3i4tlfr4e
+            model:
+              refId: A
+              editorMode: code
+              expr: 'min by (host) (probe_success{job="web-external"}) or (absent(probe_success{job="web-external"}) - 1)'
+              instant: true
+              range: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, reducer: last, expression: A }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: lt, params: [1] }
+
+      # E2 인증서 만료 임박 — Let's Encrypt 90일, Caddy는 30일 남으면 갱신 → 14일 미만이면 갱신이 계속 실패한 것
+      - uid: alert-web-cert-expiry
+        title: 웹 인증서 만료 임박
+        condition: C
+        for: 1h
+        noDataState: OK
+        execErrState: OK
+        labels:
+          severity: warning
+          board: system
+          component: 웹(인증서)
+        annotations:
+          summary: '{{ $labels.host }} HTTPS 인증서가 {{ printf "%.0f" $values.B.Value }}일 뒤 만료됩니다(임계 14일). Caddy 자동 갱신 실패 의심, caddy 로그 확인.'
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: cfltz3i4tlfr4e
+            model:
+              refId: A
+              editorMode: code
+              expr: 'min by (host) (probe_ssl_earliest_cert_expiry{job="web-external"} - time()) / 86400'
+              instant: true
+              range: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, reducer: last, expression: A }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: lt, params: [14] }
 # groups에서 룰을 빼도 Grafana는 이미 만든 provisioned 룰을 지우지 않는다 → 명시 삭제.
 # #5 빈 카테고리·#6 수집량 급감: 입력 품질 게이트(#8·#9)로 대체(2026-10-08).
 deleteRules:
