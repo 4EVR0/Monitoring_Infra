@@ -10,6 +10,7 @@ services:
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus          # TSDB 영속화
+      - ./targets:/etc/prometheus/targets:ro  # file_sd 대상(외부 확인 도메인 등, 실제 파일은 서버에만·gitignore)
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -59,6 +60,12 @@ services:
       timeout: 15s
       retries: 3
       start_period: 30s
+
+  blackbox:
+    image: prom/blackbox-exporter:v0.28.0     # 외부 HTTPS 확인(사용자와 같은 경로로 접속). 호스트 포트 없음
+    volumes:
+      - ./blackbox.yml:/etc/blackbox_exporter/config.yml:ro
+    restart: always
 
   autoheal:
     image: willfarrell/autoheal:1.2.0          # unhealthy 컨테이너 자동 재시작 (멀티아치, arm64 OK)

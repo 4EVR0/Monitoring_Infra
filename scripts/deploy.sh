@@ -27,6 +27,7 @@ docker compose up -d --build
 if changed '^config/provisioning/'; then echo "[deploy] 알림 provisioning 변경 → grafana 재시작"; docker compose restart grafana; fi
 if changed '^prometheus\.yml$';      then echo "[deploy] prometheus.yml 변경 → prometheus 재시작"; docker compose restart prometheus; fi
 if changed '^loki-config\.yml$';     then echo "[deploy] loki-config.yml 변경 → loki 재시작"; docker compose restart loki; fi
+if changed '^blackbox\.yml$';        then echo "[deploy] blackbox.yml 변경 → blackbox 재시작"; docker compose restart blackbox; fi
 
 # 헬스체크 — 재시작 직후라 잠깐 기다리며 재시도
 check() {
