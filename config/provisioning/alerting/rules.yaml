@@ -720,6 +720,43 @@ groups:
               conditions:
                 - evaluator: { type: gt, params: [0] }
 
+
+      # W3 추천 실패 — status="error" 1건 이상. SSE는 200을 먼저 보낸 뒤 event: error로 실패를 알려 W2·R1이 못 잡는다.
+      # W2와 같은 사건형(첫 이벤트 보완, 10분 뒤 자연 해소). 지속 장애면 보통 R1이 함께 울린다.
+      - uid: alert-web-recommend-fail
+        title: 웹 추천 실패
+        condition: C
+        for: 0m
+        noDataState: OK
+        execErrState: OK
+        labels:
+          severity: warning
+          component: 웹(추천)
+        annotations:
+          summary: '{{ $labels.host }} 최근 10분 사이 추천 요청이 실패했습니다(스트리밍 중 오류 포함, HTTP 200이라 5xx 알림엔 안 잡힘). Loki job=beta-app, service=app 로그에서 확인.'
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: cfltz3i4tlfr4e
+            model:
+              refId: A
+              editorMode: code
+              expr: '(sum by (host) (increase(recommend_requests_total{job="beta-app",status="error"}[10m])) > 0) or (count by (host) (recommend_requests_total{job="beta-app",status="error"} unless recommend_requests_total{job="beta-app",status="error"} offset 10m) > 0)'
+              instant: true
+              range: false
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, reducer: last, expression: A }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [0] }
 # groups에서 룰을 빼도 Grafana는 이미 만든 provisioned 룰을 지우지 않는다 → 명시 삭제.
 # #5 빈 카테고리·#6 수집량 급감: 입력 품질 게이트(#8·#9)로 대체(2026-10-08).
 deleteRules:
