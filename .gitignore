@@ -3,3 +3,4 @@
 docker-compose.yml.orig
 backup/
 docs/
+agents/*/observe.env
