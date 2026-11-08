@@ -61,6 +61,25 @@ services:
       retries: 3
       start_period: 30s
 
+  mlflow:
+    build: ./mlflow                             # 실험 추적 서버(4EVR0-Server eval/ 결과 기록). mlflow==3.14.0
+    ports:
+      - "5000:5000"                             # Tailscale로만 접근. 보안 그룹에 5000을 열지 않는다(인증 없음)
+    environment:
+      - AWS_REGION=ap-northeast-2               # artifact → S3, 인증은 EC2 IAM 롤(MonitoringServerRole)
+    volumes:
+      - mlflow-data:/mlflow                     # 실험·run 메타데이터(SQLite)
+    command:
+      - --host=0.0.0.0
+      - --port=5000
+      - --workers=2
+      - --backend-store-uri=sqlite:////mlflow/mlflow.db
+      - --artifacts-destination=s3://4evr0-monitoring/mlflow-artifacts
+      - --serve-artifacts                       # 클라이언트는 S3 키 없이 서버를 거쳐 artifact를 올리고 받는다
+      # DNS rebinding 방지: tailnet 이름·IP와 서버 내부 확인용만 허용
+      - --allowed-hosts=monitoring-server-1.tailb70036.ts.net,monitoring-server-1.tailb70036.ts.net:5000,100.105.250.65,100.105.250.65:5000,localhost,localhost:5000,127.0.0.1,127.0.0.1:5000
+    restart: always
+
   blackbox:
     image: prom/blackbox-exporter:v0.28.0     # 외부 HTTPS 확인(사용자와 같은 경로로 접속). 호스트 포트 없음
     volumes:
@@ -78,4 +97,5 @@ services:
 volumes:
   prometheus-data:
   grafana-data:
+  mlflow-data:
   loki-data:

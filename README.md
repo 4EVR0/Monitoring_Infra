@@ -14,13 +14,14 @@
 ## 구성
 
 ```
-docker-compose.yml              Prometheus · Grafana · Loki · dq_api · autoheal
+docker-compose.yml              Prometheus · Grafana · Loki · dq_api · MLflow · autoheal
 prometheus.yml                  스크레이프 타깃 + remote_write 수신
 loki-config.yml                 단일 바이너리 Loki, 청크는 S3
 alloy/                          앱 로그 수집용 Alloy 설정 (was-app.alloy)
 config/dashboards/              Grafana 대시보드 (as-code JSON)
 config/provisioning/alerting/   Grafana 알림 룰·연결처·정책 (as-code YAML)
 dq_api/                         정합성(DQ) 메트릭 조회 API (Iceberg→DuckDB→JSON)
+mlflow/                         MLflow 추적 서버 이미지(mlflow==3.14.0 + boto3)
 docs/                           운영 컨텍스트·계획 (gitignore)
 ```
 
@@ -30,6 +31,7 @@ docs/                           운영 컨텍스트·계획 (gitignore)
 | Grafana | `:3000` | 대시보드 + 알림. Neo4j · Infinity(DQ API) datasource 플러그인 포함 |
 | Loki | `:3100` | 로그 집계. 인덱스 로컬, 청크는 S3 (IAM Role 인증) |
 | dq_api | `:8000` | 정합성 메트릭 조회 API. Iceberg `dq_metrics` → Grafana(Infinity). 자세한 건 `dq_api/README.md` |
+| MLflow | `:5000` | 실험 추적(4EVR0-Server `eval/` 결과). 메타데이터 SQLite(볼륨), artifact S3 `4evr0-monitoring/mlflow-artifacts/`. **Tailscale 전용, 인증 없음** |
 | autoheal | — | `unhealthy` 컨테이너 자동 재시작 (`label=autoheal=true` 만 감시) |
 
 이미지 태그는 모두 고정해 `latest` 자동 업그레이드를 막는다.
@@ -119,6 +121,21 @@ docker compose logs -f grafana
 - 대시보드 JSON(`config/dashboards/`)은 provisioning 대상이 아니라 배포로 반영되지 않는다(UI에서 임포트).
 - Loki 는 자체 웹 UI 가 없다 → 조회는 Grafana Explore 또는 `:3100/loki/api/v1/...`.
 - 스크레이프 타깃·세부 호스트/인증 설정은 `prometheus.yml`, `loki-config.yml`, `docs/` 참고.
+
+## MLflow (실험 추적)
+
+- 주소: `http://monitoring-server-1.tailb70036.ts.net:5000` (Tailscale 연결 필요). 웹 UI도 같은 주소
+- 평가 기록: 4EVR0-Server에서 `MLFLOW_TRACKING_URI`를 위 주소로 두고 `eval/` 스크립트를 실행한다.
+  ```bash
+  export MLFLOW_TRACKING_URI=http://monitoring-server-1.tailb70036.ts.net:5000
+  python eval/run_response_eval.py ...
+  ```
+- 저장: run·지표·파라미터는 서버 볼륨 `mlflow-data`의 SQLite, artifact(보고서 JSON 등)는 S3 `4evr0-monitoring/mlflow-artifacts/`.
+  클라이언트는 `--serve-artifacts` 프록시로 올리므로 S3 키가 필요 없다(서버 IAM 롤 사용).
+- 보안: MLflow 서버에는 로그인이 없다. 보안 그룹에 5000을 열지 않고 Tailscale로만 접근한다.
+  허용 Host는 tailnet 이름·IP·localhost로 제한했다(`--allowed-hosts`, DNS rebinding 방지).
+- 평가 보고서에는 프롬프트·생성 답변이 들어간다. 사용자 원문(운영 대화)을 올리지 않는다.
+- 백업: `mlflow-data` 볼륨(SQLite)은 다른 볼륨과 같이 서버에만 있다. S3 artifact는 버킷 정책을 따른다.
 
 ## 메모
 

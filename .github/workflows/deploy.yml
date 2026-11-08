@@ -8,6 +8,7 @@ on:
     paths:
       - "config/provisioning/**"
       - "dq_api/**"
+      - "mlflow/**"
       - "docker-compose.yml"
       - "prometheus.yml"
       - "loki-config.yml"
