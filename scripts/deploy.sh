@@ -42,6 +42,7 @@ fail=0
 check grafana    http://localhost:3000/api/health || fail=1
 check prometheus http://localhost:9090/-/ready    || fail=1
 check dq_api     http://localhost:8000/health     || fail=1   # 실제 S3 스캔이라 수 초 걸림
+check mlflow     http://localhost:5000/health     || fail=1
 
 docker compose ps --format 'table {{.Service}}\t{{.Status}}'
 if (( fail )); then echo "[deploy] 헬스체크 실패" >&2; exit 1; fi
