@@ -1,5 +1,7 @@
 # Monitoring_Infra
 
+> 2026-11 운영 종료. 서버와 AWS 리소스는 철거했고, 문서는 운영 당시 기준이다.
+
 - 4EVR0 공용 모니터링 스택. 메트릭(Prometheus) · 대시보드(Grafana) · 로그(Loki)를 한 서버에서 운영한다
 - Airflow(EC2·홈서버), vLLM 추론 서버, 추천 앱(FastAPI) 등 흩어진 컴포넌트의 상태를 한곳에서 본다
 - 관측(수집·시각화)에 더해 **알림(Grafana Alerting → Discord)** 까지 이 서버에서 처리한다
@@ -14,14 +16,13 @@
 ## 구성
 
 ```
-docker-compose.yml              Prometheus · Grafana · Loki · dq_api · MLflow · autoheal
+docker-compose.yml              Prometheus · Grafana · Loki · dq_api · autoheal
 prometheus.yml                  스크레이프 타깃 + remote_write 수신
 loki-config.yml                 단일 바이너리 Loki, 청크는 S3
 alloy/                          앱 로그 수집용 Alloy 설정 (was-app.alloy)
 config/dashboards/              Grafana 대시보드 (as-code JSON)
 config/provisioning/alerting/   Grafana 알림 룰·연결처·정책 (as-code YAML)
 dq_api/                         정합성(DQ) 메트릭 조회 API (Iceberg→DuckDB→JSON)
-mlflow/                         MLflow 추적 서버 이미지(mlflow==3.14.0 + boto3)
 docs/                           운영 컨텍스트·계획 (gitignore)
 ```
 
@@ -31,7 +32,6 @@ docs/                           운영 컨텍스트·계획 (gitignore)
 | Grafana | `:3000` | 대시보드 + 알림. Neo4j · Infinity(DQ API) datasource 플러그인 포함 |
 | Loki | `:3100` | 로그 집계. 인덱스 로컬, 청크는 S3 (IAM Role 인증) |
 | dq_api | `:8000` | 정합성 메트릭 조회 API. Iceberg `dq_metrics` → Grafana(Infinity). 자세한 건 `dq_api/README.md` |
-| MLflow | `:5000` | 실험 추적(4EVR0-Server `eval/` 결과). 메타데이터 SQLite(볼륨), artifact S3 `4evr0-monitoring/mlflow-artifacts/`. **Tailscale 전용, 인증 없음** |
 | autoheal | — | `unhealthy` 컨테이너 자동 재시작 (`label=autoheal=true` 만 감시) |
 
 이미지 태그는 모두 고정해 `latest` 자동 업그레이드를 막는다.
@@ -79,12 +79,29 @@ Airflow·DQ 대시보드는 현재 자동 provisioning 대상이 아니므로 JS
 - **문제 알람** — 이 레포가 담당. `config/provisioning/alerting/` YAML 을 Grafana 부팅 시 로딩(`config/provisioning` 마운트). 룰이 발화하면 Discord 로 알린다
 - **완료 리포트** — 파이프라인 쪽 담당. 각 단계가 `dq_metrics` 요약을 Discord 로 보낸다(Airflow `DISCORD_DQ_WEBHOOK_URL`). 만성적이지만 치명적이지 않은 지표(예: `categories_failed`)는 알람 대신 이 리포트로 노출한다
 
-알림 룰 14종은 Prometheus(운영 지표)와 dq_api(데이터 품질)를 소스로 한다.
+알림 룰 20종은 Prometheus(운영 지표)와 dq_api(데이터 품질)를 소스로 한다. 정의는 `config/provisioning/alerting/rules.yaml`.
 
-| 소스 | 알림 |
-|------|------|
-| Prometheus | DAG 실패 · 스케줄러 다운 · 크롤 장기 실행(REST observer) · 시스템(디스크·메모리·노드·관측 수집 실패) |
-| dq_api (Infinity) | crawl 신선도 · 전처리 지연 · 품질 급락(match_rate) · 전처리 오류율 · 크롤 품질 경고 · 전처리 보류(입력 품질 게이트) |
+| 그룹 (평가 주기) | 알림 | 조건 | 심각도 | 근거 |
+|---|---|---|---|---|
+| Airflow (1분) | DAG 실패 | 최근 10분 내 실패 run, 2분 지속 | critical | 2분 지속은 재기동 직후 카운터 리셋에 의한 가짜 알림 제거 |
+| | 스케줄러 다운 | heartbeat 5분 이상 없음 | critical | 시리즈 소멸 자체가 다운이라 No data도 알림 |
+| | 크롤 장기 실행 | 60시간 초과 | warning | 정상 최대 약 48시간. 신선도 알림보다 하루 반 먼저 감지 |
+| 데이터 품질 (10분) | crawl 신선도 | 완료 기록 120시간 없음 | warning | 정상 최대 간격 약 96시간 + 24시간 여유 |
+| | 전처리 지연 | 새 crawl 후 1시간 넘게 미완료 | warning | crawl 주기가 3~4일이라 절대 신선도 대신 밀린 시간으로 판정 |
+| | match_rate 급락 | silver_to_gold 0.95 미만 | warning | 평상시 약 0.991 (0.990~0.992) |
+| | 전처리 오류율 | bronze→silver 0.7 초과 | warning | 평상시 약 0.41 (중복·번들 등 의도된 제외 포함) |
+| | 크롤 품질 경고 | 입력 품질 게이트 경고 | warning | 판정은 게이트 한 곳, 알림은 결과만 읽음 |
+| | 전처리 보류 | 입력 품질 게이트 보류 | critical | 〃 |
+| 시스템 (1분) | 디스크 부족 / 위험 | 루트 디스크 85% / 93% | warning / critical | |
+| | 메모리 부족 | 메모리 90% | warning | |
+| | 노드 메트릭 끊김 | 5분 넘게 메트릭 없음 | warning | 호스트를 고정한 `absent_over_time` (기존 식은 15분 지나면 저절로 해소) |
+| | 관측 수집 실패 | REST observer 15분 넘게 실패 | warning | 수집 실패와 실행 0건을 구분 |
+| 웹 서비스 (1분) | 준비 실패 | `/ready` 3분 넘게 실패 | critical | 상시 확인. DB·Redis·Neo4j·GPU 연결 |
+| | 외부 접속 실패 | 외부 HTTPS 확인 3분 넘게 실패 | critical | 상시 확인. DNS·보안 그룹·인증서까지 사용자 경로 전체 |
+| | 앱 다운 | 2분 넘게 응답 없음 | critical | 배포 재시작은 흡수 |
+| | 5xx 발생 | 최근 10분 내 1건 이상 | warning | 저트래픽이라 비율 대신 사건 수 |
+| | 추천 실패 | 최근 10분 내 1건 이상 | warning | SSE 스트리밍 오류는 HTTP 200이라 5xx로 안 잡힘 |
+| | 인증서 만료 임박 | 14일 이하 | warning | |
 
 - 전처리 지연은 최신 crawl 뒤 전처리가 아직 안 끝난 **밀린 시간**으로 판정(crawl 주기 3~4일이라 절대 신선도로 못 잼)
 - 배치 품질 알림(match_rate·오류율·게이트 경고·보류)은 기록 1건당 1회(`kind=batch_quality` 경로), 상태형 알림은 4h 반복
@@ -122,21 +139,6 @@ docker compose logs -f grafana
 - Loki 는 자체 웹 UI 가 없다 → 조회는 Grafana Explore 또는 `:3100/loki/api/v1/...`.
 - 스크레이프 타깃·세부 호스트/인증 설정은 `prometheus.yml`, `loki-config.yml`, `docs/` 참고.
 
-## MLflow (실험 추적)
-
-- 주소: `http://monitoring-server-1.tailb70036.ts.net:5000` (Tailscale 연결 필요). 웹 UI도 같은 주소
-- 평가 기록: 4EVR0-Server에서 `MLFLOW_TRACKING_URI`를 위 주소로 두고 `eval/` 스크립트를 실행한다.
-  ```bash
-  export MLFLOW_TRACKING_URI=http://monitoring-server-1.tailb70036.ts.net:5000
-  python eval/run_response_eval.py ...
-  ```
-- 저장: run·지표·파라미터는 서버 볼륨 `mlflow-data`의 SQLite, artifact(보고서 JSON 등)는 S3 `4evr0-monitoring/mlflow-artifacts/`.
-  클라이언트는 `--serve-artifacts` 프록시로 올리므로 S3 키가 필요 없다(서버 IAM 롤 사용).
-- 보안: MLflow 서버에는 로그인이 없다. 보안 그룹에 5000을 열지 않고 Tailscale로만 접근한다.
-  허용 Host는 tailnet 이름·IP·localhost로 제한했다(`--allowed-hosts`, DNS rebinding 방지).
-- 평가 보고서에는 프롬프트·생성 답변이 들어간다. 사용자 원문(운영 대화)을 올리지 않는다.
-- 백업: `mlflow-data` 볼륨(SQLite)은 다른 볼륨과 같이 서버에만 있다. S3 artifact는 버킷 정책을 따른다.
-
 ## 메모
 
 - vLLM 메트릭 이름은 엔진 버전에 따라 다르다. 현재는 V1 엔진(`vllm:kv_cache_usage_perc`) 기준
@@ -145,3 +147,16 @@ docker compose logs -f grafana
 - **dq_api + autoheal** — 장기 구동 시 pyarrow/aws-sdk 의 TLS 컨텍스트가 부패해 S3 접근이 `curlCode77` 로 실패한다.
   `/health` 를 캐시 무시·실제 S3 스캔으로 두어 부패를 감지하면 컨테이너가 `unhealthy` → autoheal 이 재시작한다.
   (일반 트래픽은 dq_api 캐시로 견디고, 헬스 경로만 실제 S3 를 탄다)
+
+## 운영 기록
+
+2026-06 ~ 2026-11 운영. 관측 대상은 Airflow(EC2·홈서버), vLLM 추론 서버, 베타 웹 서비스.
+
+| 항목 | 결과 |
+|---|---|
+| GPU 서버 정지 감지 | 3회 모두 3분 이내 (`/ready` 상시 확인) |
+| 배포 중 오탐 | 0건. 5일간 릴리스 24회, 재시작에 따른 순간 실패 8건은 Pending 단계에서 자동 해소 |
+| 수집 경로 단절 감지 | 보안 그룹 변경으로 끊긴 메트릭 수집을 6분 만에 감지·복구 |
+
+- 한계: 의도된 정지와 장애를 구분하지 못해 계획된 정지마다 수동 silence가 필요했다. 유지보수 모드 신호가 있어야 한다
+- 대시보드 JSON·알림 규칙·Alloy 설정이 모두 레포에 있어 로컬 스택으로 다시 띄울 수 있다
